@@ -8,5 +8,5 @@ data
 staticfiles
 .vscode
 .idea
-.envdata-local
+data-local
 dist
