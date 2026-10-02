@@ -101,7 +101,9 @@ main.wrap { padding-block: 1rem; }
 .day .wd { display: block; font-size: .75rem; text-transform: uppercase; color: var(--muted); }
 .day .dn { display: block; font-size: 1.35rem; font-weight: 700; }
 .day .body { flex: 1; min-width: 0; }
-.day .delta { font-weight: 600; white-space: nowrap; }
+.day .delta { font-weight: 600; white-space: nowrap; text-align: right; }
+.day .delta .expected { font-style: italic; font-weight: 400; }
+.day .delta .ytd { font-size: .75rem; font-weight: 400; color: var(--muted); margin-top: .15rem; }
 .day.status-off, .day.status-outside { opacity: .6; }
 .extra {
   display: block; padding: .45rem .9rem .45rem 4.35rem;

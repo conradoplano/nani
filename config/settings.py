@@ -100,6 +100,14 @@ CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
 # How long an emailed login code stays valid, in seconds.
 LOGIN_CODE_MAX_AGE = int(os.environ.get("LOGIN_CODE_MAX_AGE", 10 * 60))
 
+# Local testing only: log in by entering a known email, without a code or email.
+# Never enable this on the NAS.
+DEV_LOGIN = env_bool("DEV_LOGIN", False)
+if DEV_LOGIN:
+    import sys
+
+    print("WARNING: DEV_LOGIN is on - anyone can log in with just an email address.", file=sys.stderr)
+
 LANGUAGE_CODE = os.environ.get("LANGUAGE_CODE", "en-us")
 TIME_ZONE = os.environ.get("TIME_ZONE", "Europe/Berlin")
 USE_I18N = True

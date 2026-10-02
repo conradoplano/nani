@@ -71,7 +71,7 @@ def week(request, day=None):
     today = timezone.localdate()
     selected = parse_date(day) if day else today
     start = engine.week_start(selected)
-    days = engine.compute_days(start, start + timedelta(days=6), today)
+    days = engine.with_ytd(engine.compute_days(start, start + timedelta(days=6), today), today)
     return render(
         request,
         "schedule/week.html",

@@ -110,6 +110,31 @@ class EngineTests(TestCase):
         s = engine.month_summary(2026, 10, TODAY)
         self.assertEqual(s.salary, engine.money(Decimal("2166.67") * 16 / 31))
 
+    def test_ytd_uses_entered_times_then_plan(self):
+        # Past: Mon 5 worked one hour longer. Future: Mon 12 not needed, Tue 13 planned 2 h longer.
+        Day.objects.create(date=date(2026, 10, 5), actual_start=time(15), actual_end=time(20))
+        Day.objects.create(date=date(2026, 10, 12), kind=Day.Kind.NOT_NEEDED)
+        Day.objects.create(date=date(2026, 10, 13), planned_start=time(13), planned_end=time(19))
+        Extra.objects.create(date=date(2026, 10, 14), kind="evening", start=time(19), end=time(21), settlement="time_off")
+        Adjustment.objects.create(date=date(2026, 10, 15), minutes=-30)
+
+        days = engine.with_ytd(engine.compute_days(date(2026, 10, 12), date(2026, 10, 18), TODAY), TODAY)
+        ytd = {d.date.day: d.ytd for d in days}
+        self.assertEqual(ytd[12], 60 - 240)
+        self.assertEqual(ytd[13], 60 - 240 + 120)
+        self.assertEqual(ytd[14], 60 - 240 + 120 + 120)
+        self.assertEqual(ytd[15], 60 - 240 + 120 + 120 - 30)
+        self.assertEqual(ytd[18], ytd[15])
+        # The actual time account today is not affected by future plans.
+        self.assertEqual(self.balance(), 60)
+
+    def test_ytd_restarts_on_1_january(self):
+        Day.objects.create(date=date(2026, 12, 30), kind=Day.Kind.NOT_NEEDED)
+        days = engine.with_ytd(engine.compute_days(date(2026, 12, 28), date(2027, 1, 3), TODAY), TODAY)
+        ytd = {d.date: d.ytd for d in days}
+        self.assertEqual(ytd[date(2026, 12, 31)], -240)
+        self.assertEqual(ytd[date(2027, 1, 1)], 0)
+
     def test_vacation_entitlement(self):
         self.assertEqual(engine.entitlement(2026), Decimal("6.25"))  # 3 full months
         self.assertEqual(engine.entitlement(2027), Decimal("25"))

@@ -10,5 +10,7 @@ services:
       CSRF_TRUSTED_ORIGINS: http://localhost:8060,http://127.0.0.1:8060
       BEHIND_PROXY: "false"
       SECURE_COOKIES: "false"
+      # Sign in with just an email: no code, no email sent. Local testing only.
+      DEV_LOGIN: "true"
     volumes:
       - ./data-local:/data

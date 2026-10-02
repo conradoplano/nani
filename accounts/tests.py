@@ -2,7 +2,7 @@ import re
 from unittest import mock
 
 from django.core import mail
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from .models import User
@@ -77,6 +77,24 @@ class CodeLoginTests(TestCase):
             response = self._request_code()
         self.assertContains(response, "couldn&#x27;t send the email")
         self.assertNotIn("pending_login", self.client.session)
+
+    @override_settings(DEV_LOGIN=True)
+    def test_dev_login_signs_in_without_code_or_mail(self):
+        response = self._request_code()
+        self.assertRedirects(response, reverse("schedule:week"))
+        self.assertEqual(int(self.client.session["_auth_user_id"]), self.user.pk)
+        self.assertEqual(len(mail.outbox), 0)
+
+    @override_settings(DEV_LOGIN=True)
+    def test_dev_login_rejects_unknown_email(self):
+        response = self._request_code("stranger@example.com")
+        self.assertContains(response, "No active user")
+        self.assertNotIn("_auth_user_id", self.client.session)
+
+    def test_dev_login_off_by_default(self):
+        self._request_code()
+        self.assertNotIn("_auth_user_id", self.client.session)
+        self.assertEqual(len(mail.outbox), 1)
 
     def test_next_parameter_is_respected(self):
         self.client.post(f"{reverse('accounts:login')}?next=/vacation/", {"email": "parent@example.com"})

@@ -42,15 +42,25 @@ def login_request(request):
     if request.method == "POST" and form.is_valid():
         email = form.cleaned_data["email"]
         user = User.objects.filter(email__iexact=email, is_active=True).first()
-        code = f"{secrets.randbelow(10**6):06d}"
         next_url = request.GET.get("next", "")
+        if not url_has_allowed_host_and_scheme(next_url, {request.get_host()}):
+            next_url = ""
+
+        if settings.DEV_LOGIN:
+            if user is None:
+                form.add_error("email", "No active user with this email.")
+                return render(request, "accounts/login.html", {"form": form})
+            login(request, user, backend="django.contrib.auth.backends.ModelBackend")
+            return redirect(next_url or settings.LOGIN_REDIRECT_URL)
+
+        code = f"{secrets.randbelow(10**6):06d}"
         # Store state even for unknown emails so the flow looks identical.
         request.session[SESSION_KEY] = {
             "uid": user.pk if user else None,
             "hash": _hash(code),
             "expires": time.time() + settings.LOGIN_CODE_MAX_AGE,
             "attempts": 0,
-            "next": next_url if url_has_allowed_host_and_scheme(next_url, {request.get_host()}) else "",
+            "next": next_url,
         }
         if user:
             try:

@@ -50,8 +50,13 @@
             {% endif %}
             {% if d.note %}<div class="muted small">{{ d.note }}</div>{% endif %}
           </div>
-          <div class="delta {{ d.delta|sign_class }}">
-            {% if d.delta %}{{ d.delta|hm_signed }}{% endif %}
+          <div class="delta">
+            {% if d.counted %}
+              {% if d.delta %}<div class="{{ d.delta|sign_class }}">{{ d.delta|hm_signed }}</div>{% endif %}
+            {% elif d.projected_delta %}
+              <div class="expected {{ d.projected_delta|sign_class }}" title="Expected, based on the plan">{{ d.projected_delta|hm_signed }}</div>
+            {% endif %}
+            {% if d.contract %}<div class="ytd" title="Time account since 1 January at the end of this day">YTD {{ d.ytd|hm_signed }}</div>{% endif %}
           </div>
         </a>
         {% for e in d.extras %}
@@ -67,4 +72,8 @@
     <span>This week: planned {{ week_planned|hm }} h · worked {{ week_worked|hm }} h</span>
     <span class="{{ week_delta|sign_class }}">{{ week_delta|hm_signed }} h</span>
   </div>
+  <p class="muted small">
+    <strong>YTD</strong> is the time account since 1 January at the end of each day: entered times where there are any,
+    the plan for everything else. Figures in <em>italics</em> are expected, not yet happened.
+  </p>
 {% endblock %}

@@ -114,6 +114,7 @@ class DayInfo:
     worked: int = 0
     logged: bool = False
     extras: list = field(default_factory=list)
+    ytd: int | None = None  # filled in by with_ytd()
 
     @property
     def label(self):
@@ -150,6 +151,14 @@ class DayInfo:
         if not self.planned or self.status in (Status.NOT_NEEDED, Status.SICK):
             return 0
         return worked_minutes(*self.planned, self.record.break_minutes if self.record else None)
+
+    @property
+    def projected_delta(self):
+        """Effect on the time account using the entered times, or the plan where nothing is entered yet."""
+        if self.contract is None:
+            return 0
+        regular = self.worked if self.counted else self.planned_minutes
+        return regular - self.target + sum(e.time_off_minutes for e in self.extras)
 
     @property
     def actual(self):
@@ -260,6 +269,35 @@ def balance(until=None, today=None):
     total = sum(d.delta for d in compute_days(start, until, today))
     total += sum(Adjustment.objects.filter(date__lte=until).values_list("minutes", flat=True))
     return total
+
+
+def with_ytd(days, today=None):
+    """
+    Set `ytd` on each of the consecutive `days`: the time account since 1 January
+    at the end of that day, using entered times where there are any and the plan
+    for everything else (so future days show where the account is heading).
+    """
+    if not days:
+        return days
+    today = today or timezone.localdate()
+    first, last = days[0].date, days[-1].date
+    year_start = date(first.year, 1, 1)
+
+    adjustments = {}
+    for adj in Adjustment.objects.filter(date__range=(year_start, last)):
+        adjustments[adj.date] = adjustments.get(adj.date, 0) + adj.minutes
+
+    running = 0
+    if first > year_start:
+        earlier = compute_days(year_start, first - timedelta(days=1), today)
+        running = sum(d.projected_delta + adjustments.get(d.date, 0) for d in earlier)
+
+    for info in days:
+        if info.date.month == 1 and info.date.day == 1:
+            running = 0
+        running += info.projected_delta + adjustments.get(info.date, 0)
+        info.ytd = running
+    return days
 
 
 def week_start(day):
