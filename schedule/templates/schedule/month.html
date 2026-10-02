@@ -13,17 +13,17 @@
   <div class="card">
     <h3>Hours</h3>
     <table class="kv">
-      <tr><td>Owed</td><td>{{ s.target|hm }} h</td></tr>
+      <tr><td>Scheduled</td><td>{{ s.target|hm }} h</td></tr>
       <tr><td>Worked</td><td>{{ s.worked|hm }} h</td></tr>
       {% if s.time_off_credit %}<tr><td>Evenings taken as time off</td><td>+{{ s.time_off_credit|hm }} h</td></tr>{% endif %}
       {% if s.adjustment_minutes %}<tr><td>Adjustments</td><td>{{ s.adjustment_minutes|hm_signed }} h</td></tr>{% endif %}
       <tr><td>Change this month</td><td class="{{ s.delta|sign_class }}">{{ s.delta|hm_signed }} h</td></tr>
-      <tr><td>Balance at start</td><td>{{ s.balance_start|hm_signed }} h</td></tr>
-      <tr class="total"><td>Balance at end{% if s.last > s.days.0.today %} (so far){% endif %}</td>
+      <tr><td>Time account at start</td><td>{{ s.balance_start|hm_signed }} h</td></tr>
+      <tr class="total"><td>Time account at end{% if s.last > s.days.0.today %} (so far){% endif %}</td>
         <td class="{{ s.balance_end|sign_class }}">{{ s.balance_end|hm_signed }} h</td></tr>
     </table>
     <p class="muted small">
-      Vacation {{ s.vacation_days }} · Sick {{ s.sick_days }} · Not needed {{ s.not_needed_days }} day{{ s.not_needed_days|pluralize }}
+      Vacation {{ s.vacation_days }} · Sick {{ s.sick_days }} · No care needed {{ s.not_needed_days }} day{{ s.not_needed_days|pluralize }}
     </p>
   </div>
 
@@ -46,7 +46,7 @@
   </div>
 
   <div class="card">
-    <h3>Adjust balance</h3>
+    <h3>Adjust time account</h3>
     {% for a in s.adjustments %}
       <div class="line">
         <span>{{ a.date|date:"j M" }} · {{ a.minutes|hm_signed }} h{% if a.paid_out %} paid out{% endif %}{% if a.note %} · {{ a.note }}{% endif %}</span>

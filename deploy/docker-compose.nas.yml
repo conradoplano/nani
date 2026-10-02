@@ -13,6 +13,7 @@ services:
       - "127.0.0.1:5060:8000"
     volumes:
       # Database. Relative to the project folder, e.g. /docker/nani/data. Back this up.
+      # Synology doesn't create missing folders: create "data" in File Station first.
       - ./data:/data
     environment:
       # python -c "import secrets; print(secrets.token_urlsafe(50))"

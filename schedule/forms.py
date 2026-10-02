@@ -95,7 +95,7 @@ class BulkPlanForm(forms.Form):
     TIMES = "times"
     RESET = "reset"
     ACTIONS = [
-        (NOT_NEEDED, "Not needed (hours go into the balance as minus)"),
+        (NOT_NEEDED, "No care needed (the hours can be made up later)"),
         (TIMES, "Different times"),
         (RESET, "Back to the normal schedule"),
     ]
@@ -128,7 +128,7 @@ class AdjustmentForm(forms.Form):
     date = forms.DateField(widget=DateInput())
     kind = forms.ChoiceField(
         choices=[
-            (PAYOUT, "Pay out hours (removes them from the balance)"),
+            (PAYOUT, "Pay out extra hours (removes them from the time account)"),
             (CORRECTION, "Correction (+ adds, − removes)"),
         ],
         widget=forms.RadioSelect,

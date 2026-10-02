@@ -91,7 +91,8 @@ environment variables in the NAS project and never in git.
 
 1. First time only: on GitHub → your profile → Packages → the package → Package settings →
    Change visibility → Public (so the NAS can pull without a token).
-2. File Station: create the folder `/docker/nani`.
+2. File Station: create the folders `/docker/nani` and `/docker/nani/data` (Synology doesn't create
+   missing bind-mount folders).
 3. Container Manager → Project → Create: name `nani`, path `/docker/nani`, source
    "Create docker-compose.yml", paste `deploy/docker-compose.nas.yml` and fill in the values.
 4. DSM reverse proxy: `https://nani.bayley-plano.com:443` → `http://localhost:5060`, custom header

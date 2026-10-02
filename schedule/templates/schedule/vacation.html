@@ -11,8 +11,8 @@
   </div>
 
   <div class="stats">
-    <div class="card"><div class="muted small">Allowance</div><div class="big">{{ summary.entitlement|days }}</div></div>
-    <div class="card"><div class="muted small">Taken / planned</div><div class="big">{{ summary.taken }}</div></div>
+    <div class="card"><div class="muted small">Vacation days</div><div class="big">{{ summary.entitlement|days }}</div></div>
+    <div class="card"><div class="muted small">Booked</div><div class="big">{{ summary.taken }}</div></div>
     <div class="card"><div class="muted small">Requested</div><div class="big">{{ summary.pending }}</div></div>
     <div class="card"><div class="muted small">Left</div><div class="big">{{ summary.remaining|days }}</div></div>
   </div>
@@ -29,7 +29,7 @@
           {% csrf_token %}
           {% if is_parent and v.status == 'pending' %}
             <button name="action" value="approve">Approve</button>
-            <button name="action" value="reject" class="ghost">Reject</button>
+            <button name="action" value="reject" class="ghost">Decline</button>
           {% endif %}
           {% if is_parent or v.status == 'pending' and v.requested_by_id == user.pk %}
             <button name="action" value="cancel" class="link danger">Remove</button>

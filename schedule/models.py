@@ -122,7 +122,7 @@ class Day(TrackedModel):
 
     class Kind(models.TextChoices):
         REGULAR = "regular", "Regular"
-        NOT_NEEDED = "not_needed", "Not needed"
+        NOT_NEEDED = "not_needed", "No care needed"
         SICK = "sick", "Sick"
 
     date = models.DateField(unique=True)
@@ -207,7 +207,7 @@ class Vacation(models.Model):
     class Status(models.TextChoices):
         PENDING = "pending", "Pending"
         APPROVED = "approved", "Approved"
-        REJECTED = "rejected", "Rejected"
+        REJECTED = "rejected", "Declined"
 
     start_date = models.DateField()
     end_date = models.DateField()

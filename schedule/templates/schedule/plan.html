@@ -8,7 +8,7 @@
   <form method="post" class="card stack">
     {% csrf_token %}
     <h3>Change several days</h3>
-    <p class="muted small">E.g. family holidays when she isn't needed, or a week with different hours. Times she already logged are kept.</p>
+    <p class="muted small">E.g. family holidays when no care is needed, or a week with different hours. Times already entered are kept.</p>
     <div class="row">
       <div class="field">{{ bulk.start.label_tag }}{{ bulk.start }}{{ bulk.start.errors }}</div>
       <div class="field">{{ bulk.end.label_tag }}{{ bulk.end }}{{ bulk.end.errors }}</div>
@@ -25,7 +25,7 @@
 
   <div class="card">
     <h3>Public holidays</h3>
-    <p class="muted small">No work is owed on these days and they don't count as vacation.</p>
+    <p class="muted small">Free days for everyone. They don't count as vacation.</p>
     <ul class="plain-list">
       {% for h in holidays %}
         <li class="line">

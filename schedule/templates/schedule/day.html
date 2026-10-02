@@ -10,12 +10,12 @@
   <div class="card">
     <div class="line">
       <span class="badge status-{{ info.status }}">{% if info.holiday %}{{ info.holiday.name }}{% else %}{{ info.label }}{% endif %}</span>
-      {% if info.contract and info.target %}<span class="muted small">Owed {{ info.target|hm }} h</span>{% endif %}
+      {% if info.contract and info.target %}<span class="muted small">Scheduled {{ info.target|hm }} h</span>{% endif %}
       {% if info.counted %}<span class="{{ info.delta|sign_class }}">{{ info.delta|hm_signed }} h</span>{% endif %}
     </div>
     {% if info.planned %}<div>Planned {{ info.planned|timespan }}</div>{% endif %}
     {% if info.record.updated_by %}
-      <div class="muted small">Last changed by {{ info.record.updated_by }} {{ info.record.updated_at|timesince }} ago</div>
+      <div class="muted small">Updated by {{ info.record.updated_by }}, {{ info.record.updated_at|timesince }} ago</div>
     {% endif %}
     {% if can_confirm %}
       <form method="post" class="confirm">
@@ -23,7 +23,7 @@
         <button class="wide" type="submit" name="confirm" value="1">✓ Worked as planned ({{ info.planned|timespan }})</button>
       </form>
     {% elif info.logged %}
-      <div class="small pos">✓ Logged: {{ info.actual|timespan }}</div>
+      <div class="small pos">✓ Confirmed: {{ info.actual|timespan }}</div>
     {% endif %}
   </div>
 
@@ -46,9 +46,9 @@
       <div class="field">{{ form.actual_end.label_tag }}{{ form.actual_end }}</div>
     </div>
     <p class="muted small">
-      {% if info.logged %}Logged times are used for the balance.
-      {% else %}Empty means worked as planned; past days count that way automatically.
-      Enter times only if they were different.{% endif %}
+      {% if info.logged %}These times are used for the time account.
+      {% else %}Empty means as planned; past days count that way automatically.
+      Only fill in if the times were different.{% endif %}
     </p>
     <div class="field">{{ form.break_minutes.label_tag }}{{ form.break_minutes }}{{ form.break_minutes.errors }}</div>
     <div class="field">{{ form.note.label_tag }}{{ form.note }}</div>

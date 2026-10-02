@@ -7,6 +7,7 @@
   --card: #ffffff;
   --border: #e3e2dc;
   --pos: #1d7a4f;
+  --minus: #9a6500;
   --neg: #b4432f;
   --warn: #a86b00;
   --bar: #16211f;
@@ -74,7 +75,8 @@ main.wrap { padding-block: 1rem; }
 .small { font-size: .85rem; }
 .big { font-size: 1.6rem; font-weight: 700; }
 .pos { color: var(--pos); }
-.neg { color: var(--neg); }
+/* Hours to make up are a normal part of planning, not an error: amber, not red. */
+.neg { color: var(--minus); }
 
 .flash { padding: .75rem 1rem; background: var(--accent-soft); border-radius: var(--radius); margin-bottom: 1rem; }
 .flash.error { background: #fbe9e5; color: var(--neg); }
@@ -117,7 +119,7 @@ main.wrap { padding-block: 1rem; }
   background: #eceae4; color: var(--fg);
 }
 .status-work .badge, .badge.status-work { background: var(--accent-soft); color: var(--accent); }
-.status-not_needed .badge, .badge.status-not_needed { background: #fbe9e5; color: var(--neg); }
+.status-not_needed .badge, .badge.status-not_needed { background: #eceae4; color: var(--muted); }
 .status-vacation .badge, .badge.status-vacation, .badge.approved { background: #e6f0fb; color: #23598f; }
 .status-holiday .badge, .badge.status-holiday { background: #f3eafb; color: #6b3b98; }
 .status-sick .badge, .badge.status-sick { background: #fdf3df; color: var(--warn); }

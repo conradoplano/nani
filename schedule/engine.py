@@ -58,8 +58,8 @@ class Status:
     LABELS = {
         OUTSIDE: "No contract",
         OFF: "Day off",
-        WORK: "Work",
-        NOT_NEEDED: "Not needed",
+        WORK: "Scheduled",
+        NOT_NEEDED: "No care needed",
         SICK: "Sick",
         VACATION: "Vacation",
         HOLIDAY: "Holiday",
