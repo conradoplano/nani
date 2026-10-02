@@ -397,8 +397,19 @@ class MonthSummary:
     balance_end: int
 
     @property
+    def planned(self):
+        """Planned hours for the whole month: default schedule plus any changed days."""
+        return sum(d.planned_minutes for d in self.days)
+
+    @property
     def target(self):
+        """Contract hours of the days that already count for the time account."""
         return sum(d.target for d in self.days if d.counted)
+
+    @property
+    def is_partial(self):
+        """True when part of the month hasn't happened yet."""
+        return any(d.contract is not None and not d.counted for d in self.days)
 
     @property
     def worked(self):

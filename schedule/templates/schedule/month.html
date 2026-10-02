@@ -13,8 +13,9 @@
   <div class="card">
     <h3>Hours</h3>
     <table class="kv">
-      <tr><td>Scheduled</td><td>{{ s.target|hm }} h</td></tr>
-      <tr><td>Worked</td><td>{{ s.worked|hm }} h</td></tr>
+      <tr><td>Planned for the month</td><td>{{ s.planned|hm }} h</td></tr>
+      <tr><td>Contract hours{% if s.is_partial %} so far{% endif %}</td><td>{{ s.target|hm }} h</td></tr>
+      <tr><td>Worked{% if s.is_partial %} so far{% endif %}</td><td>{{ s.worked|hm }} h</td></tr>
       {% if s.time_off_credit %}<tr><td>Evenings taken as time off</td><td>+{{ s.time_off_credit|hm }} h</td></tr>{% endif %}
       {% if s.adjustment_minutes %}<tr><td>Adjustments</td><td>{{ s.adjustment_minutes|hm_signed }} h</td></tr>{% endif %}
       <tr><td>Change this month</td><td class="{{ s.delta|sign_class }}">{{ s.delta|hm_signed }} h</td></tr>

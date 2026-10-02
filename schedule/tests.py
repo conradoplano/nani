@@ -104,6 +104,18 @@ class EngineTests(TestCase):
         self.assertEqual(s.km_amount, Decimal("3.75"))
         self.assertEqual(s.total, Decimal("2220.42"))
 
+    def test_month_planned_includes_default_and_future_days(self):
+        # October 2026 from the 1st: 22 workdays × 4 h; one day planned 2 h longer, one not needed.
+        Day.objects.create(date=date(2026, 10, 20), planned_start=time(13), planned_end=time(19))
+        Day.objects.create(date=date(2026, 10, 21), kind=Day.Kind.NOT_NEEDED)
+        s = engine.month_summary(2026, 10, TODAY)
+        self.assertEqual(s.planned, 22 * 240 + 120 - 240)
+        # Contract hours and worked only cover the days before today (1, 2, 5, 6, 7 Oct).
+        self.assertEqual(s.target, 5 * 240)
+        self.assertEqual(s.worked, 5 * 240)
+        self.assertTrue(s.is_partial)
+        self.assertFalse(engine.month_summary(2026, 10, date(2026, 11, 2)).is_partial)
+
     def test_partial_month_salary(self):
         Contract.objects.all().delete()
         Contract.objects.create(start_date=date(2026, 10, 16))
