@@ -1,3 +1,5 @@
+import os
+
 from django.conf import settings
 from django.db import connection
 from django.http import HttpResponse, JsonResponse
@@ -12,7 +14,7 @@ def health(request):
             cursor.execute("SELECT 1")
     except Exception:
         return HttpResponse("db unavailable", status=503)
-    return JsonResponse({"status": "ok"})
+    return JsonResponse({"status": "ok", "version": os.environ.get("APP_VERSION", "dev")[:7]})
 
 
 @cache_control(max_age=86400)

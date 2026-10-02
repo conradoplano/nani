@@ -98,7 +98,8 @@ environment variables in the NAS project and never in git.
 4. DSM reverse proxy: `https://nani.bayley-plano.com:443` → `http://localhost:5060`, custom header
    `X-Forwarded-Proto: https`, Let's Encrypt certificate assigned.
 5. Updates: push to `main`, wait for the GitHub Action, then in Container Manager → Project → nani:
-   Stop → Action → Build (pulls the new `latest`) → Start. Settings are changed in the same project
+   Stop → Build → Start. `pull_policy: always` in the compose file makes this fetch the new `latest`.
+   `https://<host>/health/` shows the commit the running image was built from. Settings are changed in the same project
    (Edit the YAML), followed by a restart.
 6. Back up `/docker/nani/data` (e.g. Hyper Backup).
 

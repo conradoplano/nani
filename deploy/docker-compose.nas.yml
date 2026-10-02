@@ -6,6 +6,8 @@
 services:
   nani:
     image: ghcr.io/conradoplano/nani:latest
+    # Always fetch the newest image when the project is built/started.
+    pull_policy: always
     container_name: nani
     restart: unless-stopped
     ports:
