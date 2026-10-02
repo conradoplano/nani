@@ -1,0 +1,55 @@
+{% extends "base.html" %}
+{% load nani %}
+
+{% block title %}Vacation · {{ site_name }}{% endblock %}
+
+{% block content %}
+  <div class="weeknav">
+    <a class="btn ghost" href="?year={{ year|add:'-1' }}">‹</a>
+    <strong>Vacation {{ year }}</strong>
+    <a class="btn ghost" href="?year={{ year|add:'1' }}">›</a>
+  </div>
+
+  <div class="stats">
+    <div class="card"><div class="muted small">Allowance</div><div class="big">{{ summary.entitlement|days }}</div></div>
+    <div class="card"><div class="muted small">Taken / planned</div><div class="big">{{ summary.taken }}</div></div>
+    <div class="card"><div class="muted small">Requested</div><div class="big">{{ summary.pending }}</div></div>
+    <div class="card"><div class="muted small">Left</div><div class="big">{{ summary.remaining|days }}</div></div>
+  </div>
+
+  <ul class="list">
+    {% for v, n in rows %}
+      <li class="card">
+        <div class="line">
+          <strong>{{ v.start_date|date:"D j M" }}{% if v.end_date != v.start_date %} – {{ v.end_date|date:"D j M" }}{% endif %}</strong>
+          <span class="badge {{ v.status }}">{{ v.get_status_display }}</span>
+        </div>
+        <div class="muted small">{{ n }} working day{{ n|pluralize }}{% if v.note %} · {{ v.note }}{% endif %}</div>
+        <form method="post" action="{% url 'schedule:vacation_action' v.pk %}" class="actions">
+          {% csrf_token %}
+          {% if is_parent and v.status == 'pending' %}
+            <button name="action" value="approve">Approve</button>
+            <button name="action" value="reject" class="ghost">Reject</button>
+          {% endif %}
+          {% if is_parent or v.status == 'pending' and v.requested_by_id == user.pk %}
+            <button name="action" value="cancel" class="link danger">Remove</button>
+          {% endif %}
+        </form>
+      </li>
+    {% empty %}
+      <li class="muted">No vacation in {{ year }} yet.</li>
+    {% endfor %}
+  </ul>
+
+  <form method="post" class="card stack">
+    {% csrf_token %}
+    <h3>{% if is_parent %}Add vacation{% else %}Request vacation{% endif %}</h3>
+    {{ form.non_field_errors }}
+    <div class="row">
+      <div class="field">{{ form.start_date.label_tag }}{{ form.start_date }}{{ form.start_date.errors }}</div>
+      <div class="field">{{ form.end_date.label_tag }}{{ form.end_date }}{{ form.end_date.errors }}</div>
+    </div>
+    <div class="field">{{ form.note.label_tag }}{{ form.note }}</div>
+    <button class="wide" type="submit">{% if is_parent %}Add{% else %}Send request{% endif %}</button>
+  </form>
+{% endblock %}

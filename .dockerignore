@@ -1,0 +1,12 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+.env
+data
+staticfiles
+.vscode
+.idea
+.envdata-local
+dist

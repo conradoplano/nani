@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% load nani %}
+
+{% block title %}{{ day|date:"D j M" }} · {{ site_name }}{% endblock %}
+
+{% block content %}
+  <p><a href="{% url 'schedule:week_of' day.isoformat %}">‹ Week</a></p>
+  <h2>{{ day|date:"l, j F Y" }}</h2>
+
+  <div class="card">
+    <div class="line">
+      <span class="badge status-{{ info.status }}">{% if info.holiday %}{{ info.holiday.name }}{% else %}{{ info.label }}{% endif %}</span>
+      {% if info.contract and info.target %}<span class="muted small">Owed {{ info.target|hm }} h</span>{% endif %}
+      {% if info.counted %}<span class="{{ info.delta|sign_class }}">{{ info.delta|hm_signed }} h</span>{% endif %}
+    </div>
+    {% if info.planned %}<div>Planned {{ info.planned|timespan }}</div>{% endif %}
+    {% if info.record.updated_by %}
+      <div class="muted small">Last changed by {{ info.record.updated_by }} {{ info.record.updated_at|timesince }} ago</div>
+    {% endif %}
+    {% if can_confirm %}
+      <form method="post" class="confirm">
+        {% csrf_token %}
+        <button class="wide" type="submit" name="confirm" value="1">✓ Worked as planned ({{ info.planned|timespan }})</button>
+      </form>
+    {% elif info.logged %}
+      <div class="small pos">✓ Logged: {{ info.actual|timespan }}</div>
+    {% endif %}
+  </div>
+
+  <form method="post" class="card stack">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="field">{{ form.kind.label_tag }}{{ form.kind }}{{ form.kind.errors }}</div>
+    {% if form.planned_start %}
+      <div class="row">
+        <div class="field">{{ form.planned_start.label_tag }}{{ form.planned_start }}</div>
+        <div class="field">{{ form.planned_end.label_tag }}{{ form.planned_end }}</div>
+      </div>
+      <p class="muted small">
+        {% if default_plan %}Normal schedule: {{ default_plan|timespan }}.{% else %}Not a regular workday.{% endif %}
+        Leave empty to use the normal schedule.
+      </p>
+    {% endif %}
+    <div class="row">
+      <div class="field">{{ form.actual_start.label_tag }}{{ form.actual_start }}</div>
+      <div class="field">{{ form.actual_end.label_tag }}{{ form.actual_end }}</div>
+    </div>
+    <p class="muted small">
+      {% if info.logged %}Logged times are used for the balance.
+      {% else %}Empty means worked as planned; past days count that way automatically.
+      Enter times only if they were different.{% endif %}
+    </p>
+    <div class="field">{{ form.break_minutes.label_tag }}{{ form.break_minutes }}{{ form.break_minutes.errors }}</div>
+    <div class="field">{{ form.note.label_tag }}{{ form.note }}</div>
+    <button class="wide" type="submit">Save</button>
+  </form>
+
+  <div class="card">
+    <h3>Evening &amp; overnight</h3>
+    {% for e in info.extras %}
+      <a class="extra" href="{% url 'schedule:extra' e.extra.pk %}">
+        {% include "schedule/_extra_summary.html" %}
+      </a>
+    {% empty %}
+      <p class="muted">None.</p>
+    {% endfor %}
+    <a class="btn ghost" href="{% url 'schedule:extra_new' %}?date={{ day.isoformat }}">+ Add evening or overnight</a>
+  </div>
+{% endblock %}

@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Plan · {{ site_name }}{% endblock %}
+
+{% block content %}
+  <h2>Plan</h2>
+
+  <form method="post" class="card stack">
+    {% csrf_token %}
+    <h3>Change several days</h3>
+    <p class="muted small">E.g. family holidays when she isn't needed, or a week with different hours. Times she already logged are kept.</p>
+    <div class="row">
+      <div class="field">{{ bulk.start.label_tag }}{{ bulk.start }}{{ bulk.start.errors }}</div>
+      <div class="field">{{ bulk.end.label_tag }}{{ bulk.end }}{{ bulk.end.errors }}</div>
+    </div>
+    <div class="field radios">{{ bulk.action }}</div>
+    <div class="row">
+      <div class="field">{{ bulk.planned_start.label_tag }}{{ bulk.planned_start }}{{ bulk.planned_start.errors }}</div>
+      <div class="field">{{ bulk.planned_end.label_tag }}{{ bulk.planned_end }}</div>
+    </div>
+    <label class="check">{{ bulk.include_weekends }} Include weekends</label>
+    <div class="field">{{ bulk.note.label_tag }}{{ bulk.note }}</div>
+    <button class="wide" type="submit" name="bulk" value="1">Apply</button>
+  </form>
+
+  <div class="card">
+    <h3>Public holidays</h3>
+    <p class="muted small">No work is owed on these days and they don't count as vacation.</p>
+    <ul class="plain-list">
+      {% for h in holidays %}
+        <li class="line">
+          <span><strong>{{ h.date|date:"D j M Y" }}</strong> · {{ h.name }}</span>
+          <form method="post" class="inline">
+            {% csrf_token %}
+            <button type="submit" name="delete_holiday" value="{{ h.pk }}" class="link danger">Remove</button>
+          </form>
+        </li>
+      {% empty %}
+        <li class="muted">None entered for this year yet.</li>
+      {% endfor %}
+    </ul>
+    <form method="post" class="stack">
+      {% csrf_token %}
+      {{ holiday_form.non_field_errors }}
+      <div class="row">
+        <div class="field">{{ holiday_form.date.label_tag }}{{ holiday_form.date }}{{ holiday_form.date.errors }}</div>
+        <div class="field">{{ holiday_form.name.label_tag }}{{ holiday_form.name }}{{ holiday_form.name.errors }}</div>
+      </div>
+      <button type="submit" name="holiday" value="1">Add holiday</button>
+    </form>
+  </div>
+{% endblock %}

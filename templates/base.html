@@ -1,0 +1,61 @@
+{% load static %}<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}{{ site_name }}{% endblock %}</title>
+  <link rel="manifest" href="{% url 'core:manifest' %}">
+  <meta name="theme-color" content="#16211f">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="{{ site_name }}">
+  <link rel="apple-touch-icon" href="{% static 'icons/icon-180.png' %}">
+  <link rel="icon" href="{% static 'icons/icon-192.png' %}">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body class="{% if user.is_authenticated %}has-tabs{% endif %}">
+  <header class="topbar">
+    <div class="wrap">
+      <a href="{% url 'schedule:week' %}" class="brand">{{ site_name }}</a>
+      {% if user.is_authenticated %}
+        <div class="who">
+          {% if user.is_staff %}<a href="{% url 'admin:index' %}">Admin</a>{% endif %}
+          <form method="post" action="{% url 'accounts:logout' %}" class="inline">
+            {% csrf_token %}<button type="submit" class="link">Log out</button>
+          </form>
+        </div>
+      {% endif %}
+    </div>
+  </header>
+
+  <main class="wrap">
+    {% for message in messages %}
+      <div class="flash {{ message.tags }}">{{ message }}</div>
+    {% endfor %}
+    {% block content %}{% endblock %}
+  </main>
+
+  {% if user.is_authenticated %}
+    {% with name=request.resolver_match.url_name %}
+    <nav class="tabs">
+      <a href="{% url 'schedule:week' %}" class="{% if name == 'week' or name == 'week_of' or name == 'day' or name == 'extra' or name == 'extra_new' %}on{% endif %}">
+        <span class="ic">▤</span>Weeks</a>
+      <a href="{% url 'schedule:vacation' %}" class="{% if name == 'vacation' %}on{% endif %}">
+        <span class="ic">☀</span>Vacation{% if pending_count %}<span class="dot"></span>{% endif %}</a>
+      <a href="{% url 'schedule:trips' %}" class="{% if name == 'trips' or name == 'trips_month' or name == 'trip' %}on{% endif %}">
+        <span class="ic">⛟</span>Trips</a>
+      {% if is_parent %}
+        <a href="{% url 'schedule:plan' %}" class="{% if name == 'plan' %}on{% endif %}">
+          <span class="ic">✎</span>Plan</a>
+        <a href="{% url 'schedule:month' %}" class="{% if name == 'month' or name == 'month_of' %}on{% endif %}">
+          <span class="ic">∑</span>Month</a>
+      {% endif %}
+    </nav>
+    {% endwith %}
+  {% endif %}
+
+  <script>
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('{% url "core:sw" %}'); }
+  </script>
+</body>
+</html>

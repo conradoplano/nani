@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block title %}Sign in · {{ site_name }}{% endblock %}
+
+{% block content %}
+  <div class="card narrow">
+    <h2>Sign in</h2>
+    <p class="muted">Enter your email and we'll send you a six-digit code. No password needed.</p>
+    <form method="post" class="stack">
+      {% csrf_token %}
+      <div class="field">
+        {{ form.email.label_tag }}{{ form.email }}
+        {{ form.email.errors }}
+      </div>
+      <button class="wide" type="submit">Send me a code</button>
+    </form>
+  </div>
+{% endblock %}

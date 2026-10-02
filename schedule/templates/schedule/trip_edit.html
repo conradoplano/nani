@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block title %}Trip · {{ site_name }}{% endblock %}
+
+{% block content %}
+  <p><a href="{{ back }}">‹ Trips</a></p>
+  <form method="post" class="card stack">
+    {% csrf_token %}
+    <h3>Edit trip</h3>
+    <div class="row">
+      <div class="field">{{ form.date.label_tag }}{{ form.date }}{{ form.date.errors }}</div>
+      <div class="field">{{ form.km.label_tag }}{{ form.km }}{{ form.km.errors }}</div>
+    </div>
+    <div class="field">{{ form.purpose.label_tag }}{{ form.purpose }}{{ form.purpose.errors }}</div>
+    <button class="wide" type="submit">Save</button>
+  </form>
+  <form method="post" class="center">
+    {% csrf_token %}
+    <button type="submit" name="delete" value="1" class="danger">Delete trip</button>
+  </form>
+{% endblock %}

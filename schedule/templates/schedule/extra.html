@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+
+{% block title %}Evening / overnight · {{ site_name }}{% endblock %}
+
+{% block content %}
+  <h2>{% if extra %}Edit {{ extra.get_kind_display|lower }}{% else %}Evening or overnight{% endif %}</h2>
+  <form method="post" class="card stack">
+    {% csrf_token %}
+    {{ form.non_field_errors }}
+    <div class="field">{{ form.date.label_tag }}{{ form.date }}{{ form.date.errors }}</div>
+    <div class="field">{{ form.kind.label_tag }}{{ form.kind }}</div>
+    <div class="row">
+      <div class="field">{{ form.start.label_tag }}{{ form.start }}{{ form.start.errors }}</div>
+      <div class="field">{{ form.end.label_tag }}{{ form.end }}{{ form.end.errors }}</div>
+    </div>
+    <div class="field">{{ form.settlement.label_tag }}{{ form.settlement }}</div>
+    <p class="muted small">
+      {% if is_parent %}
+        Evenings are either paid at the hourly rate or added to the hour balance as time off.
+        Overnights are always paid: hourly rate until 22:00 and from 06:00, plus the night flat rate.
+      {% else %}
+        Evenings are either paid or added to the hour balance as time off. Overnights are always paid.
+      {% endif %}
+    </p>
+    <div class="field">{{ form.note.label_tag }}{{ form.note }}</div>
+    <button class="wide" type="submit">Save</button>
+  </form>
+  {% if extra %}
+    <form method="post" class="center">
+      {% csrf_token %}
+      <button type="submit" name="delete" value="1" class="danger">Delete</button>
+    </form>
+  {% endif %}
+{% endblock %}

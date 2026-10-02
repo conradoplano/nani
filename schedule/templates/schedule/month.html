@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% load nani %}
+
+{% block title %}{{ s.first|date:"F Y" }} · {{ site_name }}{% endblock %}
+
+{% block content %}
+  <div class="weeknav">
+    <a class="btn ghost" href="{% url 'schedule:month_of' prev.year prev.month %}">‹</a>
+    <strong>{{ s.first|date:"F Y" }}</strong>
+    <a class="btn ghost" href="{% url 'schedule:month_of' next.year next.month %}">›</a>
+  </div>
+
+  <div class="card">
+    <h3>Hours</h3>
+    <table class="kv">
+      <tr><td>Owed</td><td>{{ s.target|hm }} h</td></tr>
+      <tr><td>Worked</td><td>{{ s.worked|hm }} h</td></tr>
+      {% if s.time_off_credit %}<tr><td>Evenings taken as time off</td><td>+{{ s.time_off_credit|hm }} h</td></tr>{% endif %}
+      {% if s.adjustment_minutes %}<tr><td>Adjustments</td><td>{{ s.adjustment_minutes|hm_signed }} h</td></tr>{% endif %}
+      <tr><td>Change this month</td><td class="{{ s.delta|sign_class }}">{{ s.delta|hm_signed }} h</td></tr>
+      <tr><td>Balance at start</td><td>{{ s.balance_start|hm_signed }} h</td></tr>
+      <tr class="total"><td>Balance at end{% if s.last > s.days.0.today %} (so far){% endif %}</td>
+        <td class="{{ s.balance_end|sign_class }}">{{ s.balance_end|hm_signed }} h</td></tr>
+    </table>
+    <p class="muted small">
+      Vacation {{ s.vacation_days }} · Sick {{ s.sick_days }} · Not needed {{ s.not_needed_days }} day{{ s.not_needed_days|pluralize }}
+    </p>
+  </div>
+
+  <div class="card">
+    <h3>Pay</h3>
+    <table class="kv">
+      <tr><td>Monthly salary</td><td>{{ s.salary|eur }}</td></tr>
+      {% for e in s.extras %}
+        {% if e.amount %}
+          <tr><td>{{ e.extra.get_kind_display }} {{ e.extra.date|date:"j.n." }}
+            <span class="muted small">{{ e.paid_minutes|hm }} h{% if e.flat %} + night flat rate{% endif %}</span></td>
+            <td>{{ e.amount|eur }}</td></tr>
+        {% endif %}
+      {% endfor %}
+      {% if s.payout_amount %}<tr><td>Hours paid out <span class="muted small">{{ s.payout_minutes|hm }} h</span></td><td>{{ s.payout_amount|eur }}</td></tr>{% endif %}
+      <tr class="total"><td>Gross pay</td><td>{{ s.gross_total|eur }}</td></tr>
+      <tr><td>Mileage <span class="muted small">{{ s.km }} km, tax-free</span></td><td>{{ s.km_amount|eur }}</td></tr>
+      <tr class="total"><td>To transfer (before deductions)</td><td>{{ s.total|eur }}</td></tr>
+    </table>
+  </div>
+
+  <div class="card">
+    <h3>Adjust balance</h3>
+    {% for a in s.adjustments %}
+      <div class="line">
+        <span>{{ a.date|date:"j M" }} · {{ a.minutes|hm_signed }} h{% if a.paid_out %} paid out{% endif %}{% if a.note %} · {{ a.note }}{% endif %}</span>
+        <form method="post" class="inline">
+          {% csrf_token %}
+          <button type="submit" name="delete_adjustment" value="{{ a.pk }}" class="link danger">Remove</button>
+        </form>
+      </div>
+    {% endfor %}
+    <form method="post" class="stack">
+      {% csrf_token %}
+      {{ form.non_field_errors }}
+      <div class="field radios">{{ form.kind }}</div>
+      <div class="row">
+        <div class="field">{{ form.date.label_tag }}{{ form.date }}{{ form.date.errors }}</div>
+        <div class="field">{{ form.hours.label_tag }}{{ form.hours }}{{ form.hours.errors }}</div>
+      </div>
+      <div class="field">{{ form.note.label_tag }}{{ form.note }}</div>
+      <button type="submit">Save adjustment</button>
+    </form>
+  </div>
+{% endblock %}

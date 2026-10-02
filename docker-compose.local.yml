@@ -1,0 +1,14 @@
+# Try the production image on this machine over plain http://localhost:8060.
+# (Browsers block port 5060 as "unsafe", so the local port differs from the NAS one.)
+#   docker compose -f docker-compose.yml -f docker-compose.local.yml up -d --build
+services:
+  nani:
+    ports: !override
+      - "8060:8000"
+    environment:
+      ALLOWED_HOSTS: localhost,127.0.0.1
+      CSRF_TRUSTED_ORIGINS: http://localhost:8060,http://127.0.0.1:8060
+      BEHIND_PROXY: "false"
+      SECURE_COOKIES: "false"
+    volumes:
+      - ./data-local:/data

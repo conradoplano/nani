@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% load nani %}
+
+{% block title %}Trips · {{ site_name }}{% endblock %}
+
+{% block content %}
+  <div class="weeknav">
+    <a class="btn ghost" href="{% url 'schedule:trips_month' prev.year prev.month %}">‹</a>
+    <strong>Trips {{ month|date:"F Y" }}</strong>
+    <a class="btn ghost" href="{% url 'schedule:trips_month' next.year next.month %}">›</a>
+  </div>
+
+  <ul class="list">
+    {% for t in trips %}
+      <li class="card">
+        <a href="{% url 'schedule:trip' t.pk %}" class="line plain">
+          <span><strong>{{ t.date|date:"D j M" }}</strong> · {{ t.purpose }}</span>
+          <span>{{ t.km }} km</span>
+        </a>
+      </li>
+    {% empty %}
+      <li class="muted">No trips this month.</li>
+    {% endfor %}
+  </ul>
+  {% if trips %}
+    <div class="card summary">
+      <span>Total {{ total_km }} km</span>
+      {% if is_parent and total_amount is not None %}<strong>{{ total_amount|eur }}</strong>{% endif %}
+    </div>
+  {% endif %}
+
+  <form method="post" class="card stack">
+    {% csrf_token %}
+    <h3>Add trip</h3>
+    <p class="muted small">Only trips the parents asked for. The usual drive to and from work isn't reimbursed.</p>
+    <div class="row">
+      <div class="field">{{ form.date.label_tag }}{{ form.date }}{{ form.date.errors }}</div>
+      <div class="field">{{ form.km.label_tag }}{{ form.km }}{{ form.km.errors }}</div>
+    </div>
+    <div class="field">{{ form.purpose.label_tag }}{{ form.purpose }}{{ form.purpose.errors }}</div>
+    <button class="wide" type="submit">Save trip</button>
+  </form>
+{% endblock %}

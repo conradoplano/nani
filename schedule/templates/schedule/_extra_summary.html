@@ -1,0 +1,2 @@
+{% load nani %}{{ e.extra.get_kind_display }} {{ e.extra.start|time:"H:i" }}–{{ e.extra.end|time:"H:i" }}
+· {% if e.time_off_minutes %}{{ e.time_off_minutes|hm }} h time off{% elif is_parent %}{{ e.amount|eur }}{% else %}paid{% endif %}

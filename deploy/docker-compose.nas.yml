@@ -1,0 +1,36 @@
+# Compose file for the Synology NAS (Container Manager → Project → Create →
+# "Create docker-compose.yml" and paste this). Fill in the values below;
+# they only live on the NAS, never in git.
+#
+# Image built by .github/workflows/docker.yml on every push to main.
+services:
+  nani:
+    image: ghcr.io/conradoplano/nani:latest
+    container_name: nani
+    restart: unless-stopped
+    ports:
+      # Only reachable from the NAS itself; DSM's reverse proxy serves it over HTTPS.
+      - "127.0.0.1:5060:8000"
+    volumes:
+      # Database. Relative to the project folder, e.g. /docker/nani/data. Back this up.
+      - ./data:/data
+    environment:
+      # python -c "import secrets; print(secrets.token_urlsafe(50))"
+      SECRET_KEY: "change-me"
+      DEBUG: "false"
+      ALLOWED_HOSTS: "nani.example.com,localhost,127.0.0.1"
+      CSRF_TRUSTED_ORIGINS: "https://nani.example.com"
+      BEHIND_PROXY: "true"
+      SECURE_COOKIES: "true"
+      TIME_ZONE: "Europe/Berlin"
+      SITE_NAME: "Nani"
+      # Created/updated as admin on every start (optional)
+      INITIAL_ADMIN_EMAIL: ""
+      # SMTP for login codes and notifications
+      EMAIL_HOST: "smtp.example.com"
+      EMAIL_PORT: "587"
+      EMAIL_HOST_USER: ""
+      EMAIL_HOST_PASSWORD: ""
+      EMAIL_USE_TLS: "true"
+      DEFAULT_FROM_EMAIL: "Nani <nani@example.com>"
+      LOGIN_CODE_MAX_AGE: "600"
