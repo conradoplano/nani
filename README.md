@@ -1,7 +1,7 @@
 # Nani
 
 Small Django app to manage our nanny's hours. Runs on the NAS as a Docker container, data in SQLite.
-Works on the phone and can be added to the home screen.
+Works on the phone and can be added to the home screen. Vibecoded with Claude Opus 5.5.
 
 ## What it does
 
