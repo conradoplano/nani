@@ -5,7 +5,8 @@ from . import views
 app_name = "schedule"
 
 urlpatterns = [
-    path("", views.week, name="week"),
+    path("", views.home, name="home"),
+    path("week/", views.week, name="week"),
     path("week/<str:day>/", views.week, name="week_of"),
     path("day/<str:day>/", views.day_edit, name="day"),
     path("extra/new/", views.extra_edit, name="extra_new"),

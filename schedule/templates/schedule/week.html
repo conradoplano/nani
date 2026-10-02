@@ -1,24 +1,9 @@
 {% extends "base.html" %}
 {% load nani %}
 
+{% block title %}Weeks · {{ site_name }}{% endblock %}
+
 {% block content %}
-  <section class="balance card">
-    <div>
-      <div class="muted small">Time account</div>
-      <div class="big {{ balance|sign_class }}">{{ balance|hm_signed }} h</div>
-    </div>
-    <div class="right small muted">
-      {% if balance > 0 %}Extra hours that can be taken as time off{% elif balance < 0 %}Hours that can be made up later{% else %}All even{% endif %}
-    </div>
-  </section>
-
-  {% if not has_contract %}
-    <div class="flash error">
-      No contract set up yet.
-      {% if user.is_staff %}<a href="{% url 'admin:schedule_contract_add' %}">Add it in the admin</a>{% else %}Ask a parent to add it.{% endif %}
-    </div>
-  {% endif %}
-
   <div class="weeknav">
     <a class="btn ghost" href="{% url 'schedule:week_of' prev.isoformat %}" aria-label="Previous week">‹</a>
     <div class="center">
@@ -30,41 +15,7 @@
 
   <ul class="days">
     {% for d in days %}
-      <li class="day status-{{ d.status }}{% if d.is_today %} today{% endif %}">
-        <a href="{% url 'schedule:day' d.date.isoformat %}" class="day-main">
-          <div class="date">
-            <span class="wd">{{ d.date|date:"D" }}</span>
-            <span class="dn">{{ d.date|date:"j" }}</span>
-          </div>
-          <div class="body">
-            <div class="line">
-              <span class="badge">{% if d.holiday %}{{ d.holiday.name }}{% else %}{{ d.label }}{% endif %}</span>
-              {% if d.pending_vacation and not d.vacation %}<span class="badge pending">Vacation requested</span>{% endif %}
-            </div>
-            {% if d.actual %}
-              <div>Worked {{ d.actual|timespan }} <span class="muted">· {{ d.worked|hm }} h</span></div>
-              {% if d.planned_minutes %}<div class="muted small">Planned {{ d.planned|timespan }} · {{ d.planned_minutes|hm }} h</div>{% endif %}
-            {% elif d.planned_minutes %}
-              <div>{{ d.planned|timespan }} <span class="muted">· {{ d.planned_minutes|hm }} h</span>
-                <span class="muted small">{% if d.counted %}as planned{% else %}planned{% endif %}</span></div>
-            {% endif %}
-            {% if d.note %}<div class="muted small">{{ d.note }}</div>{% endif %}
-          </div>
-          <div class="delta">
-            {% if d.counted %}
-              {% if d.delta %}<div class="{{ d.delta|sign_class }}">{{ d.delta|hm_signed }}</div>{% endif %}
-            {% elif d.projected_delta %}
-              <div class="expected {{ d.projected_delta|sign_class }}" title="Expected, based on the plan">{{ d.projected_delta|hm_signed }}</div>
-            {% endif %}
-            {% if d.contract %}<div class="ytd" title="Time account since 1 January at the end of this day">YTD {{ d.ytd|hm_signed }}</div>{% endif %}
-          </div>
-        </a>
-        {% for e in d.extras %}
-          <a class="extra" href="{% url 'schedule:extra' e.extra.pk %}">
-            {% include "schedule/_extra_summary.html" %}
-          </a>
-        {% endfor %}
-      </li>
+      {% include "schedule/_day_card.html" %}
     {% endfor %}
   </ul>
 

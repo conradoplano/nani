@@ -19,7 +19,7 @@ class CodeLoginTests(TestCase):
         return re.search(r"\b(\d{6})\b", mail.outbox[-1].body).group(1)
 
     def test_home_requires_login(self):
-        response = self.client.get(reverse("schedule:week"))
+        response = self.client.get(reverse("schedule:home"))
         self.assertRedirects(response, f"{reverse('accounts:login')}?next=/")
 
     def test_known_email_receives_code_and_can_log_in(self):
@@ -28,7 +28,7 @@ class CodeLoginTests(TestCase):
         self.assertEqual(len(mail.outbox), 1)
 
         response = self.client.post(reverse("accounts:verify"), {"code": self._code_from_mail()})
-        self.assertRedirects(response, reverse("schedule:week"))
+        self.assertRedirects(response, reverse("schedule:home"))
         self.assertEqual(int(self.client.session["_auth_user_id"]), self.user.pk)
 
     def test_unknown_email_gets_same_flow_but_no_mail(self):
@@ -81,7 +81,7 @@ class CodeLoginTests(TestCase):
     @override_settings(DEV_LOGIN=True)
     def test_dev_login_signs_in_without_code_or_mail(self):
         response = self._request_code()
-        self.assertRedirects(response, reverse("schedule:week"))
+        self.assertRedirects(response, reverse("schedule:home"))
         self.assertEqual(int(self.client.session["_auth_user_id"]), self.user.pk)
         self.assertEqual(len(mail.outbox), 0)
 

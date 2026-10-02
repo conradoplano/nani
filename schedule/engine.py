@@ -153,6 +153,11 @@ class DayInfo:
         return worked_minutes(*self.planned, self.record.break_minutes if self.record else None)
 
     @property
+    def can_confirm(self):
+        """Today or a past scheduled day without entered times can be confirmed as planned."""
+        return self.status == Status.WORK and bool(self.planned) and not self.is_future and not self.logged
+
+    @property
     def projected_delta(self):
         """Effect on the time account using the entered times, or the plan where nothing is entered yet."""
         if self.contract is None:

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load nani %}
+
+{% block content %}
+  {% if not has_contract %}
+    <div class="flash error">
+      No contract set up yet.
+      {% if user.is_staff %}<a href="{% url 'admin:schedule_contract_add' %}">Add it in the admin</a>{% else %}Ask a parent to add it.{% endif %}
+    </div>
+  {% endif %}
+
+  {% include "schedule/_today.html" %}
+
+  <section class="balance card">
+    <div>
+      <div class="muted small">Time account</div>
+      <div class="big {{ balance|sign_class }}">{{ balance|hm_signed }} h</div>
+    </div>
+    <div class="right small muted">
+      {% if balance > 0 %}Extra hours that can be taken as time off{% elif balance < 0 %}Hours that can be made up later{% else %}All even{% endif %}
+    </div>
+  </section>
+
+  <p class="center"><a href="{% url 'schedule:week' %}">See this week ›</a></p>
+{% endblock %}

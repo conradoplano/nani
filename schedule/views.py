@@ -66,6 +66,43 @@ def _parents():
 # --- weeks & days ---------------------------------------------------------
 
 
+def _greeting():
+    hour = timezone.localtime().hour
+    if hour < 12:
+        return "Good morning"
+    if hour < 18:
+        return "Good afternoon"
+    return "Good evening"
+
+
+def _redirect_back(request, default, *args, **kwargs):
+    """Return to the home screen when a form there asked for it, else to `default`."""
+    if request.POST.get("next") == "home":
+        return redirect("schedule:home")
+    return redirect(default, *args, **kwargs)
+
+
+@login_required
+def home(request):
+    """Start page: greeting, today and the time account. Only the nanny gets the quick actions."""
+    today = timezone.localdate()
+    info = engine.with_ytd(engine.compute_days(today, today, today), today)[0]
+    can_act = request.user.is_nanny
+    return render(
+        request,
+        "schedule/home.html",
+        {
+            "greeting": _greeting(),
+            "d": info,
+            "can_act": can_act,
+            "today_can_confirm": can_act and info.can_confirm,
+            "today_trips": Trip.objects.filter(date=today),
+            "balance": engine.balance(today=today),
+            "has_contract": Contract.objects.exists(),
+        },
+    )
+
+
 @login_required
 def week(request, day=None):
     today = timezone.localdate()
@@ -82,11 +119,9 @@ def week(request, day=None):
             "prev": start - timedelta(days=7),
             "next": start + timedelta(days=7),
             "this_week": engine.week_start(today),
-            "balance": engine.balance(today=today),
             "week_delta": sum(d.delta for d in days),
             "week_worked": sum(d.worked for d in days if d.counted),
             "week_planned": sum(d.planned_minutes for d in days),
-            "has_contract": Contract.objects.exists(),
         },
     )
 
@@ -103,14 +138,14 @@ def day_edit(request, day):
     initial = {}
     if not record.planned_start and info.planned:
         initial = {"planned_start": info.planned[0], "planned_end": info.planned[1]}
-    can_confirm = info.status == engine.Status.WORK and info.planned and not info.is_future and not info.logged
+    can_confirm = info.can_confirm
 
     if request.method == "POST" and "confirm" in request.POST and can_confirm:
         record.actual_start, record.actual_end = info.planned
         record.updated_by = request.user
         record.save()
         messages.success(request, f"Confirmed {day:%a %d.%m.} as planned.")
-        return redirect("schedule:week_of", day=day.isoformat())
+        return _redirect_back(request, "schedule:week_of", day=day.isoformat())
 
     form = DayForm(request.POST or None, instance=record, initial=initial, is_parent=is_parent)
 
@@ -126,7 +161,7 @@ def day_edit(request, day):
             record.updated_by = request.user
             record.save()
         messages.success(request, f"Saved {day:%a %d.%m.}")
-        return redirect("schedule:week_of", day=day.isoformat())
+        return _redirect_back(request, "schedule:week_of", day=day.isoformat())
 
     return render(
         request,
@@ -252,7 +287,7 @@ def trips(request, year=None, month=None):
         trip.updated_by = request.user
         trip.save()
         messages.success(request, "Trip saved.")
-        return redirect("schedule:trips_month", year=trip.date.year, month=trip.date.month)
+        return _redirect_back(request, "schedule:trips_month", year=trip.date.year, month=trip.date.month)
 
     summary_trips = Trip.objects.filter(date__year=year, date__month=month)
     contract = Contract.objects.filter(start_date__lte=first).first() or Contract.objects.last()

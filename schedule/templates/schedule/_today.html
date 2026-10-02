@@ -1,0 +1,54 @@
+{% load nani %}<section class="card today-card">
+  <h2>{{ greeting }}, {{ user.get_short_name }}</h2>
+  <div class="muted small">Today, {{ d.date|date:"l j F" }}</div>
+
+  <ul class="days">{% include "schedule/_day_card.html" %}</ul>
+
+  {% if d.contract and can_act %}
+    {% if today_can_confirm %}
+      <form method="post" action="{% url 'schedule:day' d.date.isoformat %}">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="home">
+        <button class="wide" type="submit" name="confirm" value="1">✓ Worked as planned ({{ d.planned|timespan }})</button>
+      </form>
+    {% endif %}
+
+    <details class="quick">
+      <summary>{% if d.logged %}Change today's times{% else %}Enter different times{% endif %}</summary>
+      <form method="post" action="{% url 'schedule:day' d.date.isoformat %}" class="stack">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="home">
+        <input type="hidden" name="kind" value="{{ d.record.kind|default:'regular' }}">
+        <input type="hidden" name="break_minutes" value="{{ d.record.break_minutes|default_if_none:'' }}">
+        <div class="row">
+          <div class="field"><label for="t-start">Worked from</label>
+            <input type="time" id="t-start" name="actual_start" value="{% if d.actual %}{{ d.actual.0|time:'H:i' }}{% elif d.planned %}{{ d.planned.0|time:'H:i' }}{% endif %}" required></div>
+          <div class="field"><label for="t-end">Worked until</label>
+            <input type="time" id="t-end" name="actual_end" value="{% if d.actual %}{{ d.actual.1|time:'H:i' }}{% elif d.planned %}{{ d.planned.1|time:'H:i' }}{% endif %}" required></div>
+        </div>
+        <div class="field"><label for="t-note">Note</label>
+          <input type="text" id="t-note" name="note" maxlength="200" value="{{ d.note }}"></div>
+        <button class="wide" type="submit">Save times</button>
+      </form>
+    </details>
+  {% endif %}
+
+  <div class="today-trips">
+    <h3>Trips today</h3>
+    {% for t in today_trips %}
+      <a href="{% url 'schedule:trip' t.pk %}" class="line plain"><span>{{ t.purpose }}</span><span>{{ t.km }} km</span></a>
+    {% empty %}
+      <p class="muted small">None yet.</p>
+    {% endfor %}
+    {% if can_act %}
+    <form method="post" action="{% url 'schedule:trips' %}" class="trip-quick">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="home">
+      <input type="hidden" name="date" value="{{ d.date.isoformat }}">
+      <input type="text" name="purpose" placeholder="Purpose, e.g. swimming" maxlength="200" required aria-label="Purpose">
+      <input type="number" name="km" placeholder="km" step="0.1" min="0" inputmode="decimal" required aria-label="Kilometres">
+      <button type="submit">Add</button>
+    </form>
+    {% endif %}
+  </div>
+</section>

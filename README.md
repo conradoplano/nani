@@ -5,6 +5,8 @@ Works on the phone and can be added to the home screen. Vibecoded with Claude Op
 
 ## What it does
 
+- **Home** – greeting, today's plan and entries, and the time account. The nanny can confirm today,
+  enter different times and add a trip for today right there; parents see the same without the actions.
 - **Weeks** – each day shows the plan, what was worked and the effect on the hour balance.
   The nanny only logs days that differ from the plan; past days without a log count as worked as planned.
   Evening and overnight engagements are added per day.

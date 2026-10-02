@@ -176,6 +176,7 @@ class ViewTests(TestCase):
     def test_pages_render_for_parent(self):
         self.client.force_login(self.parent)
         for url in [
+            reverse("schedule:home"),
             reverse("schedule:week"),
             reverse("schedule:week_of", args=["2026-10-05"]),
             reverse("schedule:day", args=["2026-10-05"]),
@@ -282,6 +283,57 @@ class ViewTests(TestCase):
         self.assertContains(response, "13:00–19:00 <span class=\"muted\">· 6:00 h</span>")
         # Mon 4 + Tue 6 + Wed 0 (not needed) + Thu 4 + Fri 4
         self.assertContains(response, "planned 18:00 h")
+
+    def test_nanny_home_shows_today_with_actions(self):
+        self.nanny.name = "Anna Example"
+        self.nanny.save()
+        self.client.force_login(self.nanny)
+        response = self.client.get(reverse("schedule:home"))
+        self.assertContains(response, ", Anna</h2>")
+        self.assertContains(response, "Today, Thursday 8 October")
+        self.assertContains(response, "Worked as planned (15:00–19:00)")
+        self.assertContains(response, "Enter different times")
+        self.assertContains(response, "Purpose, e.g. swimming")
+        self.assertContains(response, "Time account")
+
+    def test_parent_home_shows_today_without_actions(self):
+        Trip.objects.create(date=TODAY, purpose="Swimming", km=Decimal("5"))
+        self.client.force_login(self.parent)
+        response = self.client.get(reverse("schedule:home"))
+        self.assertContains(response, "Today, Thursday 8 October")
+        self.assertContains(response, "Time account")
+        self.assertContains(response, "Swimming")
+        self.assertNotContains(response, "Worked as planned (")
+        self.assertNotContains(response, "Enter different times")
+        self.assertNotContains(response, "Purpose, e.g. swimming")
+
+    def test_weeks_page_has_no_today_card_or_time_account(self):
+        self.client.force_login(self.nanny)
+        response = self.client.get(reverse("schedule:week"))
+        self.assertNotContains(response, "today-card")
+        self.assertNotContains(response, 'class="balance card"')
+
+    def test_today_card_forms_return_home(self):
+        self.client.force_login(self.nanny)
+        today = TODAY.isoformat()
+        response = self.client.post(
+            reverse("schedule:day", args=[today]),
+            {"next": "home", "kind": "regular", "break_minutes": "", "actual_start": "15:00", "actual_end": "19:30", "note": ""},
+        )
+        self.assertRedirects(response, reverse("schedule:home"))
+        self.assertEqual(Day.objects.get(date=TODAY).actual_end, time(19, 30))
+
+        response = self.client.post(
+            reverse("schedule:trips"), {"next": "home", "date": today, "purpose": "Swimming", "km": "6.5"}
+        )
+        self.assertRedirects(response, reverse("schedule:home"))
+        self.assertContains(self.client.get(reverse("schedule:home")), "Swimming")
+
+    def test_today_card_confirm_returns_home(self):
+        self.client.force_login(self.nanny)
+        response = self.client.post(reverse("schedule:day", args=[TODAY.isoformat()]), {"next": "home", "confirm": "1"})
+        self.assertRedirects(response, reverse("schedule:home"))
+        self.assertTrue(Day.objects.get(date=TODAY).actual_start)
 
     def test_clearing_a_day_removes_the_row(self):
         Day.objects.create(date=date(2026, 10, 5), note="x")

@@ -89,7 +89,7 @@ DATABASES = {
 
 AUTH_USER_MODEL = "accounts.User"
 LOGIN_URL = "accounts:login"
-LOGIN_REDIRECT_URL = "schedule:week"
+LOGIN_REDIRECT_URL = "schedule:home"
 LOGOUT_REDIRECT_URL = "accounts:login"
 
 # Keep family members logged in for a long time (default 90 days).
