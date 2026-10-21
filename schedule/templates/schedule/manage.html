@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% load nani %}
+
+{% block title %}Admin · {{ site_name }}{% endblock %}
+
+{% block content %}
+  <h2>Admin</h2>
+
+  <section class="card">
+    <div class="line">
+      <h3>People</h3>
+      <a class="btn ghost" href="{% url 'schedule:person_new' %}">+ Add person</a>
+    </div>
+    <ul class="plain-list">
+      {% for p in people %}
+        <li>
+          <a class="line plain" href="{% url 'schedule:person' p.pk %}">
+            <span>
+              <strong>{{ p.get_full_name }}</strong>{% if p.pk == user.pk %} <span class="muted small">(you)</span>{% endif %}
+              <div class="muted small">{{ p.email }}</div>
+            </span>
+            <span>
+              <span class="badge">{{ p.get_role_display }}</span>
+              {% if not p.is_active %}<span class="badge rejected">Can't sign in</span>{% endif %}
+            </span>
+          </a>
+        </li>
+      {% endfor %}
+    </ul>
+    <p class="muted small">New people sign in with their email address and get a code; there are no passwords.</p>
+  </section>
+
+  <section class="card">
+    <div class="line">
+      <h3>Contract</h3>
+      <a class="btn ghost" href="{% url 'schedule:contract_new' %}">+ New terms from a date</a>
+    </div>
+    {% for c in contracts %}
+      <a class="contract plain" href="{% url 'schedule:contract' c.pk %}">
+        <div class="line">
+          <strong>From {{ c.start_date|date:"j M Y" }}{% if c.end_date %} until {{ c.end_date|date:"j M Y" }}{% endif %}</strong>
+          <span class="muted small">{{ c.nanny|default:"no nanny linked" }}</span>
+        </div>
+        <div class="small">
+          {{ c.workday_names }} · {{ c.default_start|time:"H:i" }}–{{ c.default_end|time:"H:i" }} ({{ c.weekly_minutes|hm }}/week)
+        </div>
+        <div class="muted small">
+          {{ c.monthly_salary|eur }} a month · {{ c.hourly_rate|eur }}/h · night {{ c.night_flat_rate|eur }} ·
+          {{ c.km_rate|eur }}/km · {{ c.vacation_days_per_year|days }} vacation days
+        </div>
+      </a>
+    {% empty %}
+      <p class="muted">No contract yet. <a href="{% url 'schedule:contract_new' %}">Add one</a> so the hours can be counted.</p>
+    {% endfor %}
+    <p class="muted small">For a raise or different hours, add new terms from the date they apply; earlier months keep the old ones.</p>
+  </section>
+
+  {% if user.is_staff %}
+    <p class="center small"><a href="{% url 'admin:index' %}">Technical admin (Django) ›</a></p>
+  {% endif %}
+{% endblock %}

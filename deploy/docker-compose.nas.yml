@@ -37,3 +37,7 @@ services:
       EMAIL_USE_TLS: "true"
       DEFAULT_FROM_EMAIL: "Nani <nani@example.com>"
       LOGIN_CODE_MAX_AGE: "600"
+      # Email the nanny when the parents change her plan
+      PLAN_EMAILS: "true"
+      # Address of the app for links in emails
+      SITE_URL: "https://nani.example.com"

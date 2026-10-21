@@ -9,9 +9,9 @@
 
   <div class="card">
     <div class="line">
-      <span class="badge status-{{ info.status }}">{% if info.holiday %}{{ info.holiday.name }}{% else %}{{ info.label }}{% endif %}</span>
-      {% if info.contract and info.target %}<span class="muted small">Scheduled {{ info.target|hm }} h</span>{% endif %}
-      {% if info.counted %}<span class="{{ info.delta|sign_class }}">{{ info.delta|hm_signed }} h</span>{% endif %}
+      <span class="badge status-{{ info.status }}{% if info.is_worked %} worked{% elif info.needs_confirmation %} to-confirm{% endif %}">{% if info.holiday %}{{ info.holiday.name }}{% else %}{{ info.label }}{% endif %}</span>
+      {% if info.contract and info.target %}<span class="muted small">Scheduled {{ info.target|hm }}</span>{% endif %}
+      {% if info.counted %}<span class="{{ info.delta|sign_class }}">{{ info.delta|hm_signed }}</span>{% endif %}
     </div>
     {% if info.planned %}<div>Planned {{ info.planned|timespan }}</div>{% endif %}
     {% if info.record.updated_by %}

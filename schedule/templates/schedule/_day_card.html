@@ -6,14 +6,15 @@
     </div>
     <div class="body">
       <div class="line">
-        <span class="badge">{% if d.holiday %}{{ d.holiday.name }}{% else %}{{ d.label }}{% endif %}</span>
+        <span class="badge{% if d.is_worked %} worked{% elif d.needs_confirmation %} to-confirm{% endif %}">{% if d.holiday %}{{ d.holiday.name }}{% else %}{{ d.label }}{% endif %}</span>
         {% if d.pending_vacation and not d.vacation %}<span class="badge pending">Vacation requested</span>{% endif %}
       </div>
       {% if d.actual %}
-        <div>Worked {{ d.actual|timespan }} <span class="muted">· {{ d.worked|hm }} h</span></div>
-        {% if d.planned_minutes %}<div class="muted small">Planned {{ d.planned|timespan }} · {{ d.planned_minutes|hm }} h</div>{% endif %}
+        <div>{{ d.actual|timespan }} <span class="muted">· {{ d.worked|hm }}</span>
+          {% if d.planned == d.actual %}<span class="muted small">as planned</span>{% endif %}</div>
+        {% if d.planned_minutes and d.planned != d.actual %}<div class="muted small">Planned {{ d.planned|timespan }} · {{ d.planned_minutes|hm }}</div>{% endif %}
       {% elif d.planned_minutes %}
-        <div>{{ d.planned|timespan }} <span class="muted">· {{ d.planned_minutes|hm }} h</span>
+        <div>{{ d.planned|timespan }} <span class="muted">· {{ d.planned_minutes|hm }}</span>
           <span class="muted small">{% if d.counted %}as planned{% else %}planned{% endif %}</span></div>
       {% endif %}
       {% if d.note %}<div class="muted small">{{ d.note }}</div>{% endif %}

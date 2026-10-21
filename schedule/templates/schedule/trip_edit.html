@@ -16,6 +16,6 @@
   </form>
   <form method="post" class="center">
     {% csrf_token %}
-    <button type="submit" name="delete" value="1" class="danger">Delete trip</button>
+    <button type="submit" name="delete" value="1" class="danger" data-confirm="Delete this trip on {{ trip.date|date:'D j M' }}?">Delete trip</button>
   </form>
 {% endblock %}

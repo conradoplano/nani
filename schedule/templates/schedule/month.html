@@ -13,16 +13,30 @@
   <div class="card">
     <h3>Hours</h3>
     <table class="kv">
-      <tr><td>Planned for the month</td><td>{{ s.planned|hm }} h</td></tr>
-      <tr><td>Contract hours{% if s.is_partial %} so far{% endif %}</td><td>{{ s.target|hm }} h</td></tr>
-      <tr><td>Worked{% if s.is_partial %} so far{% endif %}</td><td>{{ s.worked|hm }} h</td></tr>
-      {% if s.time_off_credit %}<tr><td>Evenings taken as time off</td><td>+{{ s.time_off_credit|hm }} h</td></tr>{% endif %}
-      {% if s.adjustment_minutes %}<tr><td>Adjustments</td><td>{{ s.adjustment_minutes|hm_signed }} h</td></tr>{% endif %}
-      <tr><td>Change this month</td><td class="{{ s.delta|sign_class }}">{{ s.delta|hm_signed }} h</td></tr>
-      <tr><td>Time account at start</td><td>{{ s.balance_start|hm_signed }} h</td></tr>
+      <tr><td>Planned for the month</td><td>{{ s.planned|hm }}</td></tr>
+      <tr><td>Contract hours{% if s.is_partial %} so far{% endif %}</td><td>{{ s.target|hm }}</td></tr>
+      <tr><td>Worked{% if s.is_partial %} so far{% endif %}</td><td>{{ s.worked|hm }}</td></tr>
+      {% if s.unconfirmed_days %}
+        <tr class="sub to-confirm-row">
+          <td>of which not confirmed yet
+            <div class="small">
+              {% for d in s.unconfirmed_days %}<a href="{% url 'schedule:day' d.date.isoformat %}">{{ d.date|date:"D j" }}</a>{% if not forloop.last %}, {% endif %}{% endfor %}
+            </div>
+          </td>
+          <td>{{ s.unconfirmed|hm }}</td>
+        </tr>
+      {% endif %}
+      {% if s.time_off_credit %}<tr><td>Evenings taken as time off</td><td>+{{ s.time_off_credit|hm }}</td></tr>{% endif %}
+      {% if s.adjustment_minutes %}<tr><td>Adjustments</td><td>{{ s.adjustment_minutes|hm_signed }}</td></tr>{% endif %}
+      <tr><td>Change this month</td><td class="{{ s.delta|sign_class }}">{{ s.delta|hm_signed }}</td></tr>
+      <tr><td>Time account at start</td><td>{{ s.balance_start|hm_signed }}</td></tr>
       <tr class="total"><td>Time account at end{% if s.last > s.days.0.today %} (so far){% endif %}</td>
-        <td class="{{ s.balance_end|sign_class }}">{{ s.balance_end|hm_signed }} h</td></tr>
+        <td class="{{ s.balance_end|sign_class }}">{{ s.balance_end|hm_signed }}</td></tr>
     </table>
+    <p class="muted small">
+      Past days without entered times count as worked as planned until they are confirmed;
+      confirming them as planned doesn't change these figures, different times do.
+    </p>
     <p class="muted small">
       Vacation {{ s.vacation_days }} · Sick {{ s.sick_days }} · No care needed {{ s.not_needed_days }} day{{ s.not_needed_days|pluralize }}
     </p>
@@ -35,11 +49,11 @@
       {% for e in s.extras %}
         {% if e.amount %}
           <tr><td>{{ e.extra.get_kind_display }} {{ e.extra.date|date:"j.n." }}
-            <span class="muted small">{{ e.paid_minutes|hm }} h{% if e.flat %} + night flat rate{% endif %}</span></td>
+            <span class="muted small">{{ e.paid_minutes|hm }}{% if e.flat %} + night flat rate{% endif %}</span></td>
             <td>{{ e.amount|eur }}</td></tr>
         {% endif %}
       {% endfor %}
-      {% if s.payout_amount %}<tr><td>Hours paid out <span class="muted small">{{ s.payout_minutes|hm }} h</span></td><td>{{ s.payout_amount|eur }}</td></tr>{% endif %}
+      {% if s.payout_amount %}<tr><td>Hours paid out <span class="muted small">{{ s.payout_minutes|hm }}</span></td><td>{{ s.payout_amount|eur }}</td></tr>{% endif %}
       <tr class="total"><td>Gross pay</td><td>{{ s.gross_total|eur }}</td></tr>
       <tr><td>Mileage <span class="muted small">{{ s.km }} km, tax-free</span></td><td>{{ s.km_amount|eur }}</td></tr>
       <tr class="total"><td>To transfer (before deductions)</td><td>{{ s.total|eur }}</td></tr>
@@ -50,10 +64,10 @@
     <h3>Adjust time account</h3>
     {% for a in s.adjustments %}
       <div class="line">
-        <span>{{ a.date|date:"j M" }} · {{ a.minutes|hm_signed }} h{% if a.paid_out %} paid out{% endif %}{% if a.note %} · {{ a.note }}{% endif %}</span>
+        <span>{{ a.date|date:"j M" }} · {{ a.minutes|hm_signed }}{% if a.paid_out %} paid out{% endif %}{% if a.note %} · {{ a.note }}{% endif %}</span>
         <form method="post" class="inline">
           {% csrf_token %}
-          <button type="submit" name="delete_adjustment" value="{{ a.pk }}" class="link danger">Remove</button>
+          <button type="submit" name="delete_adjustment" value="{{ a.pk }}" class="link danger" data-confirm="Remove this adjustment of {{ a.minutes|hm_signed }}?">Remove</button>
         </form>
       </div>
     {% endfor %}

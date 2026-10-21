@@ -32,7 +32,7 @@
           <span><strong>{{ h.date|date:"D j M Y" }}</strong> · {{ h.name }}</span>
           <form method="post" class="inline">
             {% csrf_token %}
-            <button type="submit" name="delete_holiday" value="{{ h.pk }}" class="link danger">Remove</button>
+            <button type="submit" name="delete_holiday" value="{{ h.pk }}" class="link danger" data-confirm="Remove the holiday {{ h.name }} ({{ h.date|date:'j M Y' }})?">Remove</button>
           </form>
         </li>
       {% empty %}

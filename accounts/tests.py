@@ -1,5 +1,8 @@
 import re
+from datetime import timedelta
 from unittest import mock
+
+from django.utils import timezone
 
 from django.core import mail
 from django.test import TestCase, override_settings
@@ -95,6 +98,31 @@ class CodeLoginTests(TestCase):
         self._request_code()
         self.assertNotIn("_auth_user_id", self.client.session)
         self.assertEqual(len(mail.outbox), 1)
+
+    def test_codes_per_address_are_limited(self):
+        for _ in range(5):
+            self._request_code()
+        self.assertEqual(len(mail.outbox), 5)
+        response = self._request_code()
+        self.assertContains(response, "Too many codes")
+        self.assertEqual(len(mail.outbox), 5)
+        # Unknown addresses are limited the same way, so the limit reveals nothing.
+        for _ in range(5):
+            self._request_code("stranger@example.com")
+        self.assertContains(self._request_code("stranger@example.com"), "Too many codes")
+
+    def test_limit_resets_after_the_window(self):
+        for _ in range(5):
+            self._request_code()
+        later = timezone.now() + timedelta(minutes=16)
+        with mock.patch("django.utils.timezone.now", return_value=later):
+            response = self._request_code()
+        self.assertRedirects(response, reverse("accounts:verify"))
+        self.assertEqual(len(mail.outbox), 6)
+
+    def test_short_name_falls_back_to_email(self):
+        self.assertEqual(User.objects.create_user(email="no.name@example.com").get_short_name(), "no.name")
+        self.assertEqual(self.user.get_short_name(), "Pat")
 
     def test_next_parameter_is_respected(self):
         self.client.post(f"{reverse('accounts:login')}?next=/vacation/", {"email": "parent@example.com"})

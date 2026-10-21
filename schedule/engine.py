@@ -64,6 +64,11 @@ class Status:
         VACATION: "Vacation",
         HOLIDAY: "Holiday",
     }
+    PAST_LABELS = {
+        NOT_NEEDED: "Was free",
+        SICK: "Was sick",
+        VACATION: "Was on vacation",
+    }
 
 
 @dataclass
@@ -117,7 +122,24 @@ class DayInfo:
     ytd: int | None = None  # filled in by with_ytd()
 
     @property
+    def is_worked(self):
+        """A scheduled day with times entered or confirmed."""
+        return self.status == Status.WORK and self.logged
+
+    @property
+    def needs_confirmation(self):
+        """A past scheduled day nobody has confirmed yet (it still counts as worked as planned)."""
+        return self.status == Status.WORK and self.date < self.today and not self.logged
+
+    @property
     def label(self):
+        """Badge text: what the day is, or once it has happened, what it was."""
+        if self.is_worked:
+            return "Worked"
+        if self.needs_confirmation:
+            return "To confirm"
+        if self.date < self.today:
+            return Status.PAST_LABELS.get(self.status, Status.LABELS[self.status])
         return Status.LABELS[self.status]
 
     @property
@@ -419,6 +441,15 @@ class MonthSummary:
     @property
     def worked(self):
         return sum(d.worked for d in self.days if d.counted)
+
+    @property
+    def unconfirmed_days(self):
+        """Past scheduled days without entered times; they count as worked as planned."""
+        return [d for d in self.days if d.needs_confirmation]
+
+    @property
+    def unconfirmed(self):
+        return sum(d.worked for d in self.unconfirmed_days)
 
     @property
     def time_off_credit(self):

@@ -17,6 +17,11 @@ urlpatterns = [
     path("trips/<int:year>/<int:month>/", views.trips, name="trips_month"),
     path("trips/edit/<int:pk>/", views.trip_edit, name="trip"),
     path("plan/", views.plan, name="plan"),
+    path("manage/", views.manage, name="manage"),
+    path("manage/people/new/", views.person_edit, name="person_new"),
+    path("manage/people/<int:pk>/", views.person_edit, name="person"),
+    path("manage/contract/new/", views.contract_edit, name="contract_new"),
+    path("manage/contract/<int:pk>/", views.contract_edit, name="contract"),
     path("month/", views.month, name="month"),
     path("month/<int:year>/<int:month>/", views.month, name="month_of"),
 ]

@@ -28,7 +28,7 @@
   {% if extra %}
     <form method="post" class="center">
       {% csrf_token %}
-      <button type="submit" name="delete" value="1" class="danger">Delete</button>
+      <button type="submit" name="delete" value="1" class="danger" data-confirm="Delete this {{ extra.get_kind_display|lower }} on {{ extra.date|date:'D j M' }}?">Delete</button>
     </form>
   {% endif %}
 {% endblock %}

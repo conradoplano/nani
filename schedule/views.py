@@ -15,8 +15,10 @@ from django.views.decorators.http import require_POST
 
 from accounts.models import User
 
-from . import engine
-from .forms import AdjustmentForm, BulkPlanForm, DayForm, ExtraForm, HolidayForm, TripForm, VacationForm
+from . import engine, notify
+from .forms import (
+    AdjustmentForm, BulkPlanForm, ContractForm, DayForm, ExtraForm, HolidayForm, PersonForm, TripForm, VacationForm,
+)
 from .models import Adjustment, Contract, Day, Extra, Holiday, Trip, Vacation
 
 logger = logging.getLogger(__name__)
@@ -49,7 +51,7 @@ def _month_bounds(year, month):
     return first, prev_month.replace(day=1), next_month.replace(day=1)
 
 
-def notify(users, subject, body):
+def notify_users(users, subject, body):
     recipients = [u.email for u in users if u.email]
     if not recipients:
         return
@@ -84,9 +86,19 @@ def _redirect_back(request, default, *args, **kwargs):
 
 @login_required
 def home(request):
-    """Start page: greeting, today and the time account. Only the nanny gets the quick actions."""
+    """Start page: greeting, today, the days ahead and the time account.
+    Only the nanny gets the quick actions."""
     today = timezone.localdate()
-    info = engine.with_ytd(engine.compute_days(today, today, today), today)[0]
+    week_monday = engine.week_start(today)
+    if today.weekday() < 4:
+        coming_title, coming_start, coming_end = "Rest of the week", today + timedelta(days=1), week_monday + timedelta(days=6)
+    else:
+        # From Friday, the rest of the week is the weekend: look ahead to the next working week.
+        coming_title = "Next week"
+        coming_start = week_monday + timedelta(days=7)
+        coming_end = coming_start + timedelta(days=4)
+    days = engine.with_ytd(engine.compute_days(today, coming_end, today), today)
+    info, coming = days[0], [d for d in days if d.date >= coming_start]
     can_act = request.user.is_nanny
     return render(
         request,
@@ -94,6 +106,9 @@ def home(request):
         {
             "greeting": _greeting(),
             "d": info,
+            "coming": coming,
+            "coming_title": coming_title,
+            "coming_week": engine.week_start(coming_start),
             "can_act": can_act,
             "today_can_confirm": can_act and info.can_confirm,
             "today_trips": Trip.objects.filter(date=today),
@@ -103,11 +118,31 @@ def home(request):
     )
 
 
+WEEK_SESSION_KEY = "selected_week"
+
+
+def selected_week(request, day):
+    """The week to show. A week opened explicitly (a date in the URL) is remembered for this
+    browser for the rest of the day, so going to another tab and back keeps it; otherwise the
+    current week. (Taken from the chef app.)"""
+    today = timezone.localdate()
+    if day:
+        start = engine.week_start(parse_date(day))
+        request.session[WEEK_SESSION_KEY] = {"start": start.isoformat(), "on": today.isoformat()}
+        return start
+    saved = request.session.get(WEEK_SESSION_KEY) or {}
+    if saved.get("on") == today.isoformat():
+        try:
+            return date.fromisoformat(saved["start"])
+        except (KeyError, ValueError):
+            pass
+    return engine.week_start(today)
+
+
 @login_required
 def week(request, day=None):
     today = timezone.localdate()
-    selected = parse_date(day) if day else today
-    start = engine.week_start(selected)
+    start = selected_week(request, day)
     days = engine.with_ytd(engine.compute_days(start, start + timedelta(days=6), today), today)
     return render(
         request,
@@ -150,6 +185,7 @@ def day_edit(request, day):
     form = DayForm(request.POST or None, instance=record, initial=initial, is_parent=is_parent)
 
     if request.method == "POST" and form.is_valid():
+        before = notify.snapshot(day, day)
         record = form.save(commit=False)
         # Don't store the default times, so later contract changes still apply to this day.
         if default_plan and (record.planned_start, record.planned_end) == default_plan:
@@ -160,6 +196,7 @@ def day_edit(request, day):
         else:
             record.updated_by = request.user
             record.save()
+        notify.plan_changed(request, before)
         messages.success(request, f"Saved {day:%a %d.%m.}")
         return _redirect_back(request, "schedule:week_of", day=day.isoformat())
 
@@ -215,7 +252,7 @@ def vacation(request):
         vac.save()
         days = engine.vacation_workdays(vac.start_date, vac.end_date)
         if vac.status == Vacation.Status.PENDING:
-            notify(
+            notify_users(
                 _parents(),
                 "Vacation request",
                 f"{request.user} asked for vacation from {vac.start_date:%d.%m.%Y} to {vac.end_date:%d.%m.%Y} "
@@ -262,7 +299,7 @@ def vacation_action(request, pk):
     vac.decided_at = timezone.now()
     vac.save()
     if vac.requested_by and vac.requested_by != request.user:
-        notify(
+        notify_users(
             [vac.requested_by],
             f"Vacation {vac.get_status_display().lower()}",
             f"Your vacation from {vac.start_date:%d.%m.%Y} to {vac.end_date:%d.%m.%Y} "
@@ -335,17 +372,26 @@ def plan(request):
     holiday_form = HolidayForm(request.POST if "holiday" in request.POST else None)
 
     if bulk.is_bound and bulk.is_valid():
+        before = notify.snapshot(bulk.cleaned_data["start"], bulk.cleaned_data["end"])
         changed = _apply_plan(bulk.cleaned_data, request.user)
+        notify.plan_changed(request, before)
         messages.success(request, f"Updated {changed} day{'s' if changed != 1 else ''}.")
         return redirect("schedule:week_of", day=bulk.cleaned_data["start"].isoformat())
 
     if holiday_form.is_bound and holiday_form.is_valid():
+        day = holiday_form.cleaned_data["date"]
+        before = notify.snapshot(day, day)
         holiday = holiday_form.save()
+        notify.plan_changed(request, before)
         messages.success(request, f"Added {holiday}.")
         return redirect("schedule:plan")
 
     if request.method == "POST" and "delete_holiday" in request.POST:
-        Holiday.objects.filter(pk=request.POST["delete_holiday"]).delete()
+        holiday = Holiday.objects.filter(pk=request.POST["delete_holiday"]).first()
+        if holiday:
+            before = notify.snapshot(holiday.date, holiday.date)
+            holiday.delete()
+            notify.plan_changed(request, before)
         messages.success(request, "Holiday removed.")
         return redirect("schedule:plan")
 
@@ -389,6 +435,52 @@ def _apply_plan(data, user):
             record.save()
         changed += 1
     return changed
+
+
+# --- admin screen (parents) -----------------------------------------------
+
+
+@parent_required
+def manage(request):
+    """People and contract terms, without the technical Django admin."""
+    people = User.objects.order_by("-is_active", "role", "name", "email")
+    return render(request, "schedule/manage.html", {"people": people, "contracts": Contract.objects.all()})
+
+
+@parent_required
+def person_edit(request, pk=None):
+    person = get_object_or_404(User, pk=pk) if pk else None
+    form = PersonForm(request.POST or None, instance=person, editor=request.user,
+                      initial={} if person else {"role": User.Role.NANNY, "is_active": True})
+    if request.method == "POST" and form.is_valid():
+        saved = form.save()
+        messages.success(request, f"Saved {saved}.")
+        return redirect("schedule:manage")
+    return render(request, "schedule/person_edit.html", {"form": form, "person": person})
+
+
+@parent_required
+def contract_edit(request, pk=None):
+    """Edit terms, or (without pk) add new terms from a date, starting from the latest ones."""
+    contract = get_object_or_404(Contract, pk=pk) if pk else None
+    if contract is None:
+        latest = Contract.objects.first()
+        contract = Contract(
+            **{f.name: getattr(latest, f.name) for f in Contract._meta.fields if f.name not in ("id", "start_date", "end_date")}
+        ) if latest else Contract()
+    form = ContractForm(request.POST or None, instance=contract)
+    if request.method == "POST" and "delete" in request.POST and contract.pk:
+        if Contract.objects.count() == 1:
+            messages.error(request, "The only contract can't be removed.")
+        else:
+            contract.delete()
+            messages.success(request, "Terms removed.")
+        return redirect("schedule:manage")
+    if request.method == "POST" and form.is_valid():
+        saved = form.save()
+        messages.success(request, f"Saved the terms valid from {saved.start_date:%d.%m.%Y}.")
+        return redirect("schedule:manage")
+    return render(request, "schedule/contract_edit.html", {"form": form, "contract": contract})
 
 
 # --- month overview (parents) ---------------------------------------------

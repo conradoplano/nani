@@ -5,15 +5,18 @@ Works on the phone and can be added to the home screen. Vibecoded with Claude Op
 
 ## What it does
 
-- **Home** – greeting, today's plan and entries, and the time account. The nanny can confirm today,
-  enter different times and add a trip for today right there; parents see the same without the actions.
+- **Home** – greeting, today's plan and entries, the rest of the week (from Friday: next week) and the
+  time account. The nanny can confirm today, enter different times and add a trip for today right there;
+  parents see the same without the actions.
 - **Weeks** – each day shows the plan, what was worked and the effect on the hour balance.
+  Swipe left/right (or use ‹ ›) to change week; the chosen week is kept for the rest of the day.
   The nanny only logs days that differ from the plan; past days without a log count as worked as planned.
   Evening and overnight engagements are added per day.
 - **Vacation** – the nanny requests days, parents approve (email notifications both ways).
   Shows the allowance (25 days, 1/12 per full month in a partial year), days taken, requested and left.
 - **Trips** – mileage log (date, purpose, km) reimbursed at 0.30 €/km.
 - **Plan** (parents) – mark a range of days as "not needed" or with different times, and enter public holidays.
+  The nanny gets an email listing the changed days (from today on); `PLAN_EMAILS=false` switches this off.
 - **Month** (parents) – hours, balance, and what to pay: salary, paid evenings/overnights, paid-out hours, mileage.
   Balance adjustments (payout or correction) are entered here.
 
@@ -31,11 +34,13 @@ Works on the phone and can be added to the home screen. Vibecoded with Claude Op
 
 More than 6 h in a day deducts a 30 min break automatically, unless a break is entered.
 A day affects the balance once it is in the past, or as soon as times are logged for it.
-All contract values (times, rates, allowance) are on the **Contract** in the admin.
+All contract values (times, rates, allowance) are on the **Admin** page (top bar, parents only), which also
+manages people. New terms (e.g. a raise) are added from the date they apply; earlier months keep the old ones.
 
 ## Login
 
 There are no passwords. A user enters their email and gets a six-digit code (valid 10 minutes).
+At most 5 codes per address are sent in 15 minutes.
 Only users that already exist can log in. Add them with:
 
 ```sh
@@ -44,14 +49,16 @@ python manage.py adduser partner@example.com --name "Partner"          # parent
 python manage.py adduser nanny@example.com --name "Nanny" --role nanny
 ```
 
-or via the Django admin at `/admin/`. If `EMAIL_HOST` is not set, emails are printed to the console / container logs.
+or on the **Admin** page in the app (the technical Django admin at `/admin/` is still there for superusers).
+If `EMAIL_HOST` is not set, emails are printed to the console / container logs.
 
 ## First-time setup
 
-1. Create the users (above).
-2. In the admin, add a **Contract**: pick the nanny and the start date. The other fields default to the
+1. Create the first parent with `adduser … --admin` (or `INITIAL_ADMIN_EMAIL`), then sign in.
+2. **Admin → + Add person** for the other parent and the nanny.
+3. **Admin → Contract**: link the nanny and set the start date. The other fields default to the
    signed contract (Mon–Fri 15:00–19:00, 2,166.67 €, 25 €/h, 50 € night flat rate, 0.30 €/km, 25 vacation days).
-3. Enter the year's public holidays on the **Plan** tab.
+4. Enter the year's public holidays on the **Plan** tab.
 
 ## Local development
 

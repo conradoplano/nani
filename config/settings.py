@@ -84,6 +84,13 @@ DATABASES = {
     "default": {
         "ENGINE": "django.db.backends.sqlite3",
         "NAME": DATA_DIR / "db.sqlite3",
+        # Two server processes may write at the same time (e.g. both parents, or nanny and parent):
+        # WAL lets reads and a write happen together, and writers wait instead of failing.
+        "OPTIONS": {
+            "init_command": "PRAGMA journal_mode=WAL; PRAGMA synchronous=NORMAL;",
+            "transaction_mode": "IMMEDIATE",
+            "timeout": 20,
+        },
     }
 }
 
@@ -99,6 +106,12 @@ CSRF_COOKIE_SECURE = SESSION_COOKIE_SECURE
 
 # How long an emailed login code stays valid, in seconds.
 LOGIN_CODE_MAX_AGE = int(os.environ.get("LOGIN_CODE_MAX_AGE", 10 * 60))
+
+# Email the nanny when the parents change her plan (uses the SMTP settings below).
+PLAN_EMAILS = env_bool("PLAN_EMAILS", True)
+# Address of the app for links in emails, e.g. https://nani.example.com. Defaults to the
+# address the change was made on.
+SITE_URL = os.environ.get("SITE_URL", "")
 
 # Local testing only: log in by entering a known email, without a code or email.
 # Never enable this on the NAS.

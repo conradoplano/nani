@@ -7,18 +7,18 @@ register = template.Library()
 
 @register.filter
 def hm(minutes):
-    """420 -> '7:00'"""
+    """A duration: 420 -> '7h', 90 -> '1h30m', 5 -> '0h05m'. (Clock times use timespan.)"""
     if minutes is None:
         return ""
     minutes = int(minutes)
     sign = "−" if minutes < 0 else ""
     h, m = divmod(abs(minutes), 60)
-    return f"{sign}{h}:{m:02d}"
+    return f"{sign}{h}h{m:02d}m" if m else f"{sign}{h}h"
 
 
 @register.filter
 def hm_signed(minutes):
-    """90 -> '+1:30', -30 -> '−0:30'"""
+    """90 -> '+1h30m', -30 -> '−0h30m', 60 -> '+1h'"""
     minutes = int(minutes or 0)
     return hm(minutes) if minutes < 0 else f"+{hm(minutes)}"
 

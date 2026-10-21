@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+
+{% block title %}Contract · {{ site_name }}{% endblock %}
+
+{% block content %}
+  <p><a href="{% url 'schedule:manage' %}">‹ Admin</a></p>
+  <form method="post" class="card stack">
+    {% csrf_token %}
+    <h3>{% if contract.pk %}Terms from {{ contract.start_date|date:"j M Y" }}{% else %}New terms{% endif %}</h3>
+    {% if not contract.pk %}
+      <p class="muted small">Pre-filled with the current terms. Change what's different and the date it applies from.</p>
+    {% endif %}
+    {{ form.non_field_errors }}
+
+    <h4>Who and when</h4>
+    {% include "schedule/_fields.html" with fields=form.visible_fields|slice:":3" %}
+
+    <h4>Working time</h4>
+    <div class="field radios days-pick">{{ form.days.label_tag }}{{ form.days }}{{ form.days.errors }}</div>
+    <div class="row">
+      <div class="field">{{ form.default_start.label_tag }}{{ form.default_start }}{{ form.default_start.errors }}</div>
+      <div class="field">{{ form.default_end.label_tag }}{{ form.default_end }}{{ form.default_end.errors }}</div>
+    </div>
+
+    <h4>Pay</h4>
+    <div class="row">
+      <div class="field">{{ form.monthly_salary.label_tag }}{{ form.monthly_salary }}{{ form.monthly_salary.errors }}</div>
+      <div class="field">{{ form.hourly_rate.label_tag }}{{ form.hourly_rate }}{{ form.hourly_rate.errors }}</div>
+    </div>
+    <div class="row">
+      <div class="field">{{ form.night_flat_rate.label_tag }}{{ form.night_flat_rate }}{{ form.night_flat_rate.errors }}</div>
+      <div class="field">{{ form.night_from.label_tag }}{{ form.night_from }}</div>
+      <div class="field">{{ form.night_until.label_tag }}{{ form.night_until }}</div>
+    </div>
+    <p class="muted small">Overnights are paid hourly outside the night hours, plus the night flat rate.</p>
+    <div class="row">
+      <div class="field">{{ form.km_rate.label_tag }}{{ form.km_rate }}{{ form.km_rate.errors }}</div>
+      <div class="field">{{ form.vacation_days_per_year.label_tag }}{{ form.vacation_days_per_year }}{{ form.vacation_days_per_year.errors }}</div>
+    </div>
+
+    <button class="wide" type="submit">Save</button>
+  </form>
+  {% if contract.pk %}
+    <form method="post" class="center" data-confirm="Remove the terms from {{ contract.start_date|date:'j M Y' }}? Days in that period then use the previous terms.">
+      {% csrf_token %}
+      <button type="submit" name="delete" value="1" class="danger">Remove these terms</button>
+    </form>
+  {% endif %}
+{% endblock %}

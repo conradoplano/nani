@@ -3,7 +3,7 @@ from decimal import Decimal
 from unittest import mock
 
 from django.core import mail
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from accounts.models import User
@@ -116,6 +116,16 @@ class EngineTests(TestCase):
         self.assertTrue(s.is_partial)
         self.assertFalse(engine.month_summary(2026, 10, date(2026, 11, 2)).is_partial)
 
+    def test_month_shows_unconfirmed_hours(self):
+        # Oct 1, 2, 5, 6, 7 are past; 1 and 5 are confirmed, 6 worked longer, 2 and 7 not entered.
+        Day.objects.create(date=date(2026, 10, 1), actual_start=time(15), actual_end=time(19))
+        Day.objects.create(date=date(2026, 10, 5), actual_start=time(15), actual_end=time(19))
+        Day.objects.create(date=date(2026, 10, 6), actual_start=time(15), actual_end=time(20))
+        s = engine.month_summary(2026, 10, TODAY)
+        self.assertEqual([d.date.day for d in s.unconfirmed_days], [2, 7])
+        self.assertEqual(s.unconfirmed, 2 * 240)
+        self.assertEqual(s.worked, 4 * 240 + 300)  # unconfirmed days are included
+
     def test_partial_month_salary(self):
         Contract.objects.all().delete()
         Contract.objects.create(start_date=date(2026, 10, 16))
@@ -146,6 +156,36 @@ class EngineTests(TestCase):
         ytd = {d.date: d.ytd for d in days}
         self.assertEqual(ytd[date(2026, 12, 31)], -240)
         self.assertEqual(ytd[date(2027, 1, 1)], 0)
+
+    def test_badges_say_what_a_day_was_once_it_happened(self):
+        Day.objects.create(date=date(2026, 10, 2), kind=Day.Kind.NOT_NEEDED)
+        Day.objects.create(date=date(2026, 10, 5), kind=Day.Kind.SICK)
+        Vacation.objects.create(start_date=date(2026, 10, 6), end_date=date(2026, 10, 6), status="approved")
+        Day.objects.create(date=TODAY, actual_start=time(15), actual_end=time(19))
+        Day.objects.create(date=date(2026, 10, 12), kind=Day.Kind.NOT_NEEDED)
+        labels = {d.date.day: d.label for d in engine.compute_days(START, date(2026, 10, 13), TODAY)}
+        self.assertEqual(labels[1], "To confirm")      # past, nothing entered (still counts as planned)
+        self.assertEqual(labels[2], "Was free")
+        self.assertEqual(labels[3], "Day off")         # weekend
+        self.assertEqual(labels[5], "Was sick")
+        self.assertEqual(labels[6], "Was on vacation")
+        self.assertEqual(labels[8], "Worked")          # today, times entered
+        self.assertEqual(labels[9], "Scheduled")       # tomorrow
+        self.assertEqual(labels[12], "No care needed") # future
+        # Today without entries is still scheduled; a past day becomes "Worked" once confirmed.
+        Day.objects.filter(date=TODAY).delete()
+        self.assertEqual(engine.compute_days(TODAY, TODAY, TODAY)[0].label, "Scheduled")
+        before = self.balance()
+        Day.objects.create(date=START, actual_start=time(15), actual_end=time(19))
+        self.assertEqual(engine.compute_days(START, START, TODAY)[0].label, "Worked")
+        self.assertEqual(self.balance(), before)  # confirming as planned doesn't change the hours
+
+    def test_duration_format(self):
+        from .templatetags.nani import hm, hm_signed
+
+        self.assertEqual([hm(240), hm(90), hm(5), hm(0), hm(-60), hm(1230)],
+                         ["4h", "1h30m", "0h05m", "0h", "−1h", "20h30m"])
+        self.assertEqual([hm_signed(90), hm_signed(-30), hm_signed(0)], ["+1h30m", "−0h30m", "+0h"])
 
     def test_vacation_entitlement(self):
         self.assertEqual(engine.entitlement(2026), Decimal("6.25"))  # 3 full months
@@ -190,6 +230,17 @@ class ViewTests(TestCase):
         ]:
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
+
+    def test_month_page_lists_unconfirmed_days(self):
+        self.client.force_login(self.parent)
+        response = self.client.get(reverse("schedule:month_of", args=[2026, 10]))
+        self.assertContains(response, "of which not confirmed yet")
+        self.assertContains(response, reverse("schedule:day", args=["2026-10-07"]))
+        self.assertContains(response, "count as worked as planned until they are confirmed")
+        # Nothing to confirm: no row.
+        for day in (1, 2, 5, 6, 7):
+            Day.objects.create(date=date(2026, 10, day), actual_start=time(15), actual_end=time(19))
+        self.assertNotContains(self.client.get(reverse("schedule:month_of", args=[2026, 10])), "of which not confirmed yet")
 
     def test_nanny_cannot_open_parent_pages(self):
         self.client.force_login(self.nanny)
@@ -239,6 +290,18 @@ class ViewTests(TestCase):
         self.assertNotContains(self.client.get(url), "Worked as planned (")
         self.assertEqual(engine.balance(), 0)
 
+    def test_day_card_shows_as_planned_or_the_plan(self):
+        Day.objects.create(date=date(2026, 10, 5), actual_start=time(15), actual_end=time(19))
+        Day.objects.create(date=date(2026, 10, 6), actual_start=time(15), actual_end=time(18))
+        self.client.force_login(self.nanny)
+        html = self.client.get(reverse("schedule:week_of", args=["2026-10-05"])).content.decode()
+        monday = html.split('<span class="dn">5</span>')[1].split("</li>")[0]
+        tuesday = html.split('<span class="dn">6</span>')[1].split("</li>")[0]
+        self.assertIn("as planned", monday)
+        self.assertNotIn("Planned 15:00", monday)
+        self.assertIn("Planned 15:00–19:00 · 4h", tuesday)
+        self.assertNotIn("as planned", tuesday)
+
     def test_cannot_confirm_future_day(self):
         self.client.force_login(self.nanny)
         url = reverse("schedule:day", args=["2026-10-12"])
@@ -279,10 +342,10 @@ class ViewTests(TestCase):
         Day.objects.create(date=date(2026, 10, 14), kind=Day.Kind.NOT_NEEDED)
         self.client.force_login(self.nanny)
         response = self.client.get(reverse("schedule:week_of", args=["2026-10-12"]))
-        self.assertContains(response, "15:00–19:00 <span class=\"muted\">· 4:00 h</span>")
-        self.assertContains(response, "13:00–19:00 <span class=\"muted\">· 6:00 h</span>")
+        self.assertContains(response, "15:00–19:00 <span class=\"muted\">· 4h</span>")
+        self.assertContains(response, "13:00–19:00 <span class=\"muted\">· 6h</span>")
         # Mon 4 + Tue 6 + Wed 0 (not needed) + Thu 4 + Fri 4
-        self.assertContains(response, "planned 18:00 h")
+        self.assertContains(response, "Planned 18h")
 
     def test_nanny_home_shows_today_with_actions(self):
         self.nanny.name = "Anna Example"
@@ -306,6 +369,13 @@ class ViewTests(TestCase):
         self.assertNotContains(response, "Worked as planned (")
         self.assertNotContains(response, "Enter different times")
         self.assertNotContains(response, "Purpose, e.g. swimming")
+
+    def test_week_has_swipe_targets(self):
+        self.client.force_login(self.nanny)
+        response = self.client.get(reverse("schedule:week_of", args=["2026-10-07"]))
+        self.assertContains(response, f'id="week-prev" href="{reverse("schedule:week_of", args=["2026-09-28"])}"')
+        self.assertContains(response, f'id="week-next" href="{reverse("schedule:week_of", args=["2026-10-12"])}"')
+        self.assertContains(response, "/static/js/app.js")
 
     def test_weeks_page_has_no_today_card_or_time_account(self):
         self.client.force_login(self.nanny)
@@ -334,6 +404,205 @@ class ViewTests(TestCase):
         response = self.client.post(reverse("schedule:day", args=[TODAY.isoformat()]), {"next": "home", "confirm": "1"})
         self.assertRedirects(response, reverse("schedule:home"))
         self.assertTrue(Day.objects.get(date=TODAY).actual_start)
+
+    # --- improvements taken from the chef app ---
+
+    def test_delete_buttons_ask_first(self):
+        extra = Extra.objects.create(date=date(2026, 10, 5), kind="evening", start=time(19), end=time(22))
+        trip = Trip.objects.create(date=date(2026, 10, 5), purpose="Swimming", km=Decimal("5"))
+        Holiday.objects.create(date=date(2026, 12, 25), name="Christmas Day")
+        Vacation.objects.create(start_date=date(2026, 11, 2), end_date=date(2026, 11, 2), status="approved")
+        Adjustment.objects.create(date=date(2026, 10, 5), minutes=-60, paid_out=True)
+        self.client.force_login(self.parent)
+        for url in [
+            reverse("schedule:extra", args=[extra.pk]),
+            reverse("schedule:trip", args=[trip.pk]),
+            reverse("schedule:plan"),
+            reverse("schedule:vacation") + "?year=2026",
+            reverse("schedule:month_of", args=[2026, 10]),
+        ]:
+            with self.subTest(url=url):
+                self.assertContains(self.client.get(url), "data-confirm=")
+
+    def test_app_script_registers_service_worker_and_brand_icon(self):
+        self.client.force_login(self.nanny)
+        response = self.client.get(reverse("schedule:home"))
+        self.assertContains(response, f'data-sw-url="{reverse("core:sw")}"')
+        self.assertContains(response, 'class="brand"><img src="/static/icons/icon-180.png"')
+        self.assertNotContains(response, "navigator.serviceWorker")
+
+    def test_selected_week_is_remembered_for_the_day(self):
+        self.client.force_login(self.nanny)
+        self.client.get(reverse("schedule:week_of", args=["2026-10-21"]))
+        self.assertEqual(self.client.get(reverse("schedule:week")).context["start"], date(2026, 10, 19))
+        # "Back to this week" links to the current week explicitly.
+        self.assertContains(self.client.get(reverse("schedule:week")), reverse("schedule:week_of", args=["2026-10-05"]))
+        # The next day the current week is shown again.
+        with mock.patch("django.utils.timezone.localdate", return_value=date(2026, 10, 9)):
+            self.assertEqual(self.client.get(reverse("schedule:week")).context["start"], date(2026, 10, 5))
+
+    def test_home_shows_rest_of_the_week(self):
+        self.client.force_login(self.nanny)
+        response = self.client.get(reverse("schedule:home"))  # Thursday
+        self.assertContains(response, "Rest of the week")
+        self.assertEqual([d.date.day for d in response.context["coming"]], [9, 10, 11])
+
+    def test_home_looks_ahead_from_friday(self):
+        Day.objects.create(date=date(2026, 10, 14), kind=Day.Kind.NOT_NEEDED)
+        self.client.force_login(self.nanny)
+        with mock.patch("django.utils.timezone.localdate", return_value=date(2026, 10, 9)):
+            response = self.client.get(reverse("schedule:home"))
+        self.assertContains(response, "Next week")
+        self.assertEqual([d.date.day for d in response.context["coming"]], [12, 13, 14, 15, 16])
+        self.assertContains(response, "No care needed")
+
+    def test_nanny_is_emailed_when_parents_change_her_plan(self):
+        self.client.force_login(self.parent)
+        mail.outbox.clear()
+        self.client.post(
+            reverse("schedule:plan"),
+            {"bulk": "1", "start": "2026-10-12", "end": "2026-10-13", "action": "not_needed", "note": ""},
+        )
+        self.assertEqual(len(mail.outbox), 1)
+        message = mail.outbox[0]
+        self.assertEqual(message.to, [self.nanny.email])
+        self.assertIn("Mon 12 Oct: no care needed (was 15:00–19:00)", message.body)
+        self.assertIn("Tue 13 Oct: no care needed (was 15:00–19:00)", message.body)
+        self.assertIn("/week/2026-10-12/", message.body)
+
+        mail.outbox.clear()
+        self.client.post(reverse("schedule:day", args=["2026-10-15"]),
+                         {"kind": "regular", "planned_start": "13:00", "planned_end": "19:00"})
+        self.assertIn("Thu 15 Oct: 13:00–19:00 (was 15:00–19:00)", mail.outbox[0].body)
+
+        mail.outbox.clear()
+        self.client.post(reverse("schedule:plan"), {"holiday": "1", "date": "2026-10-16", "name": "Test day"})
+        self.assertIn("Fri 16 Oct: holiday (Test day) (was 15:00–19:00)", mail.outbox[0].body)
+
+    def test_no_plan_email_for_past_days_unchanged_days_or_nanny_edits(self):
+        self.client.force_login(self.parent)
+        mail.outbox.clear()
+        # Past day, and a note only (the plan looks the same).
+        self.client.post(reverse("schedule:day", args=["2026-10-05"]), {"kind": "not_needed"})
+        self.client.post(reverse("schedule:day", args=["2026-10-12"]), {"kind": "regular", "note": "Pick up at 15:00"})
+        self.assertEqual(len(mail.outbox), 0)
+        # The nanny's own entries don't email her.
+        self.client.force_login(self.nanny)
+        self.client.post(reverse("schedule:day", args=["2026-10-12"]), {"kind": "sick"})
+        self.assertEqual(len(mail.outbox), 0)
+
+    @override_settings(PLAN_EMAILS=False)
+    def test_plan_emails_can_be_switched_off(self):
+        self.client.force_login(self.parent)
+        mail.outbox.clear()
+        self.client.post(reverse("schedule:day", args=["2026-10-12"]), {"kind": "not_needed"})
+        self.assertEqual(len(mail.outbox), 0)
+
+    # --- admin screen ---
+
+    def test_admin_screen_is_for_parents_only(self):
+        self.client.force_login(self.nanny)
+        for name in ("manage", "person_new", "contract_new"):
+            self.assertEqual(self.client.get(reverse(f"schedule:{name}")).status_code, 403)
+        self.assertNotContains(self.client.get(reverse("schedule:home")), reverse("schedule:manage"))
+        self.client.force_login(self.parent)
+        response = self.client.get(reverse("schedule:manage"))
+        self.assertContains(response, "nanny@example.com")
+        self.assertContains(response, "Mon, Tue, Wed, Thu, Fri · 15:00–19:00 (20h/week)")
+
+    def test_add_and_edit_person(self):
+        self.client.force_login(self.parent)
+        response = self.client.post(
+            reverse("schedule:person_new"),
+            {"name": "Laura Example", "email": "Laura@Example.com", "role": "parent", "is_active": "on"},
+        )
+        self.assertRedirects(response, reverse("schedule:manage"))
+        laura = User.objects.get(email="laura@example.com")
+        self.assertFalse(laura.has_usable_password())
+        self.assertFalse(laura.is_staff)
+
+        # Duplicate addresses are refused, whatever the case.
+        response = self.client.post(
+            reverse("schedule:person_new"), {"name": "X", "email": "NANNY@example.com", "role": "nanny", "is_active": "on"}
+        )
+        self.assertContains(response, "already uses this email")
+
+        # Deactivating instead of deleting.
+        self.client.post(reverse("schedule:person", args=[self.nanny.pk]),
+                         {"name": "", "email": self.nanny.email, "role": "nanny"})
+        self.nanny.refresh_from_db()
+        self.assertFalse(self.nanny.is_active)
+
+    def test_cannot_lock_yourself_out_or_remove_last_parent(self):
+        self.client.force_login(self.parent)
+        # Own role and active flag can't be changed (disabled fields keep their value).
+        self.client.post(reverse("schedule:person", args=[self.parent.pk]),
+                         {"name": "Me", "email": self.parent.email, "role": "nanny"})
+        self.parent.refresh_from_db()
+        self.assertEqual((self.parent.role, self.parent.is_active, self.parent.name), ("parent", True, "Me"))
+
+        # With two parents, one can deactivate the other.
+        other = User.objects.create_user(email="other@example.com", role="parent")
+        self.client.force_login(other)
+        self.client.post(reverse("schedule:person", args=[self.parent.pk]), {"email": self.parent.email, "role": "parent"})
+        self.parent.refresh_from_db()
+        self.assertFalse(self.parent.is_active)
+
+        # But the last active parent can't be removed, e.g. by a technical admin who isn't a parent.
+        tech = User.objects.create_superuser(email="tech@example.com", role="nanny")
+        self.client.force_login(tech)
+        response = self.client.post(reverse("schedule:person", args=[other.pk]), {"email": other.email, "role": "nanny", "is_active": "on"})
+        self.assertContains(response, "at least one active parent")
+        other.refresh_from_db()
+        self.assertEqual(other.role, "parent")
+
+    def test_admin_access_only_granted_by_superusers(self):
+        self.client.force_login(self.parent)
+        self.assertNotContains(self.client.get(reverse("schedule:person_new")), "admin_access")
+        self.client.post(reverse("schedule:person", args=[self.nanny.pk]),
+                         {"email": self.nanny.email, "role": "nanny", "is_active": "on", "admin_access": "on"})
+        self.nanny.refresh_from_db()
+        self.assertFalse(self.nanny.is_superuser)
+
+        boss = User.objects.create_superuser(email="boss@example.com")
+        self.client.force_login(boss)
+        self.client.post(reverse("schedule:person", args=[self.parent.pk]),
+                         {"email": self.parent.email, "role": "parent", "is_active": "on", "admin_access": "on"})
+        self.parent.refresh_from_db()
+        self.assertTrue(self.parent.is_superuser and self.parent.is_staff)
+
+    def test_edit_contract_and_add_new_terms(self):
+        contract = Contract.objects.get()
+        self.client.force_login(self.parent)
+        response = self.client.get(reverse("schedule:contract", args=[contract.pk]))
+        self.assertContains(response, 'value="2166.67"')
+
+        data = {
+            "nanny": self.nanny.pk, "start_date": "2026-10-01", "end_date": "", "days": ["0", "1", "2", "3"],
+            "default_start": "14:00", "default_end": "19:00", "monthly_salary": "2166.67", "hourly_rate": "25.00",
+            "night_flat_rate": "50.00", "night_from": "22:00", "night_until": "06:00", "km_rate": "0.30",
+            "vacation_days_per_year": "25",
+        }
+        self.assertRedirects(self.client.post(reverse("schedule:contract", args=[contract.pk]), data), reverse("schedule:manage"))
+        contract.refresh_from_db()
+        self.assertEqual((contract.workdays, contract.default_start, contract.nanny), ("0,1,2,3", time(14), self.nanny))
+
+        # New terms start pre-filled with the current ones; a raise from November.
+        self.assertContains(self.client.get(reverse("schedule:contract_new")), 'value="14:00"')
+        self.client.post(reverse("schedule:contract_new"), {**data, "start_date": "2026-11-01", "hourly_rate": "27.00"})
+        self.assertEqual(Contract.objects.count(), 2)
+        self.assertEqual(engine.month_summary(2026, 11, TODAY).days[0].contract.hourly_rate, Decimal("27.00"))
+        # Two terms can't start on the same day.
+        response = self.client.post(reverse("schedule:contract_new"), {**data, "start_date": "2026-11-01"})
+        self.assertContains(response, "already terms starting on this day")
+
+    def test_contract_needs_a_working_day_and_last_one_stays(self):
+        contract = Contract.objects.get()
+        self.client.force_login(self.parent)
+        response = self.client.post(reverse("schedule:contract", args=[contract.pk]), {"start_date": "2026-10-01"})
+        self.assertContains(response, "This field is required")
+        self.client.post(reverse("schedule:contract", args=[contract.pk]), {"delete": "1"})
+        self.assertTrue(Contract.objects.exists())
 
     def test_clearing_a_day_removes_the_row(self):
         Day.objects.create(date=date(2026, 10, 5), note="x")

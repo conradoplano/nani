@@ -12,14 +12,19 @@
   <link rel="apple-touch-icon" href="{% static 'icons/icon-180.png' %}">
   <link rel="icon" href="{% static 'icons/icon-192.png' %}">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <script src="{% static 'js/app.js' %}" defer></script>
 </head>
-<body class="{% if user.is_authenticated %}has-tabs{% endif %}">
+<body class="{% if user.is_authenticated %}has-tabs{% endif %}" data-sw-url="{% url 'core:sw' %}">
   <header class="topbar">
     <div class="wrap">
-      <a href="{% url 'schedule:home' %}" class="brand">{{ site_name }}</a>
+      <a href="{% url 'schedule:home' %}" class="brand"><img src="{% static 'icons/icon-180.png' %}" alt="">{{ site_name }}</a>
       {% if user.is_authenticated %}
         <div class="who">
-          {% if user.is_staff %}<a href="{% url 'admin:index' %}">Admin</a>{% endif %}
+          {% if is_parent %}
+            {% with name=request.resolver_match.url_name %}
+            <a href="{% url 'schedule:manage' %}" class="{% if name == 'manage' or name == 'person' or name == 'person_new' or name == 'contract' or name == 'contract_new' %}on{% endif %}">Admin</a>
+            {% endwith %}
+          {% endif %}
           <form method="post" action="{% url 'accounts:logout' %}" class="inline">
             {% csrf_token %}<button type="submit" class="link">Log out</button>
           </form>
@@ -55,9 +60,5 @@
     </nav>
     {% endwith %}
   {% endif %}
-
-  <script>
-    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('{% url "core:sw" %}'); }
-  </script>
 </body>
 </html>

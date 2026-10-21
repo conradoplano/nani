@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+
+{% block title %}{% if person %}{{ person }}{% else %}Add person{% endif %} · {{ site_name }}{% endblock %}
+
+{% block content %}
+  <p><a href="{% url 'schedule:manage' %}">‹ Admin</a></p>
+  <form method="post" class="card stack">
+    {% csrf_token %}
+    <h3>{% if person %}{{ person.get_full_name }}{% else %}Add person{% endif %}</h3>
+    {{ form.non_field_errors }}
+    {% include "schedule/_fields.html" with fields=form %}
+    <button class="wide" type="submit">Save</button>
+  </form>
+  {% if person and person.is_nanny %}
+    <p class="muted small center">Link the nanny to the contract on the <a href="{% url 'schedule:manage' %}">Admin</a> page.</p>
+  {% endif %}
+{% endblock %}

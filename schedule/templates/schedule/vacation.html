@@ -32,7 +32,7 @@
             <button name="action" value="reject" class="ghost">Decline</button>
           {% endif %}
           {% if is_parent or v.status == 'pending' and v.requested_by_id == user.pk %}
-            <button name="action" value="cancel" class="link danger">Remove</button>
+            <button name="action" value="cancel" class="link danger" data-confirm="Remove this vacation ({{ v.start_date|date:'j M' }}{% if v.end_date != v.start_date %} – {{ v.end_date|date:'j M' }}{% endif %})?">Remove</button>
           {% endif %}
         </form>
       </li>
