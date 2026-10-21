@@ -112,6 +112,7 @@ def home(request):
             "can_act": can_act,
             "today_can_confirm": can_act and info.can_confirm,
             "today_trips": Trip.objects.filter(date=today),
+            "to_confirm": engine.days_to_confirm(today) if can_act else [],
             "balance": engine.balance(today=today),
             "has_contract": Contract.objects.exists(),
         },
@@ -205,6 +206,20 @@ def day_edit(request, day):
         "schedule/day.html",
         {"info": info, "form": form, "day": day, "default_plan": default_plan, "can_confirm": can_confirm},
     )
+
+
+@require_POST
+@login_required
+def confirm_all(request):
+    """Confirm every past day that has no times yet as worked as planned."""
+    days = engine.days_to_confirm()
+    for info in days:
+        record = info.record or Day(date=info.date)
+        record.actual_start, record.actual_end = info.planned
+        record.updated_by = request.user
+        record.save()
+    messages.success(request, f"Confirmed {len(days)} day{'s' if len(days) != 1 else ''} as planned.")
+    return _redirect_back(request, "schedule:week")
 
 
 @login_required

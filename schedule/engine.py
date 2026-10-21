@@ -281,6 +281,15 @@ def default_plan(info):
     return (contract.default_start, contract.default_end)
 
 
+def days_to_confirm(today=None):
+    """Past scheduled days without entered times, oldest first."""
+    today = today or timezone.localdate()
+    start = first_contract_date()
+    if start is None or start >= today:
+        return []
+    return [d for d in compute_days(start, today - timedelta(days=1), today) if d.needs_confirmation]
+
+
 def first_contract_date():
     first = Contract.objects.order_by("start_date").first()
     return first.start_date if first else None

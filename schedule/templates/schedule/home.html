@@ -11,6 +11,35 @@
 
   {% include "schedule/_today.html" %}
 
+  {% if to_confirm %}
+    <section class="card to-confirm-card">
+      <h3>Days to confirm <span class="badge to-confirm">{{ to_confirm|length }}</span></h3>
+      <p class="muted small">They count as worked as planned. Confirm them, or open a day to enter different times.</p>
+      <ul class="plain-list">
+        {% for c in to_confirm %}
+          <li class="line">
+            <a href="{% url 'schedule:day' c.date.isoformat %}">
+              <strong>{{ c.date|date:"D j M" }}</strong> · {{ c.planned|timespan }}
+            </a>
+            <form method="post" action="{% url 'schedule:day' c.date.isoformat %}" class="inline">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="home">
+              <button type="submit" name="confirm" value="1" class="ghost small-btn">✓ As planned</button>
+            </form>
+          </li>
+        {% endfor %}
+      </ul>
+      {% if to_confirm|length > 1 %}
+        <form method="post" action="{% url 'schedule:confirm_all' %}"
+              data-confirm="Confirm all {{ to_confirm|length }} days as worked as planned?">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="home">
+          <button type="submit" class="wide">✓ Confirm all as planned</button>
+        </form>
+      {% endif %}
+    </section>
+  {% endif %}
+
   {% if coming %}
     <section class="coming">
       <div class="line">

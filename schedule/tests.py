@@ -231,6 +231,31 @@ class ViewTests(TestCase):
             with self.subTest(url=url):
                 self.assertEqual(self.client.get(url).status_code, 200)
 
+    def test_nanny_home_lists_days_to_confirm(self):
+        Day.objects.create(date=date(2026, 10, 1), actual_start=time(15), actual_end=time(19))
+        self.client.force_login(self.nanny)
+        response = self.client.get(reverse("schedule:home"))
+        self.assertEqual([d.date.day for d in response.context["to_confirm"]], [2, 5, 6, 7])
+        self.assertContains(response, "Days to confirm")
+        self.assertContains(response, "Confirm all as planned")
+        # Parents don't get the card.
+        self.client.force_login(self.parent)
+        self.assertNotContains(self.client.get(reverse("schedule:home")), "Days to confirm")
+
+    def test_confirm_one_and_all_from_home(self):
+        self.client.force_login(self.nanny)
+        response = self.client.post(reverse("schedule:day", args=["2026-10-02"]), {"next": "home", "confirm": "1"})
+        self.assertRedirects(response, reverse("schedule:home"))
+        self.assertEqual([d.date.day for d in engine.days_to_confirm(TODAY)], [1, 5, 6, 7])
+
+        response = self.client.post(reverse("schedule:confirm_all"), {"next": "home"})
+        self.assertRedirects(response, reverse("schedule:home"))
+        self.assertEqual(engine.days_to_confirm(TODAY), [])
+        self.assertEqual(Day.objects.get(date=date(2026, 10, 7)).actual_end, time(19))
+        self.assertNotContains(self.client.get(reverse("schedule:home")), "Days to confirm")
+        # Today and future days are never confirmed in bulk.
+        self.assertFalse(Day.objects.filter(date__gte=TODAY).exists())
+
     def test_month_page_lists_unconfirmed_days(self):
         self.client.force_login(self.parent)
         response = self.client.get(reverse("schedule:month_of", args=[2026, 10]))

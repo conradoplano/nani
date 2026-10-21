@@ -9,6 +9,7 @@ urlpatterns = [
     path("week/", views.week, name="week"),
     path("week/<str:day>/", views.week, name="week_of"),
     path("day/<str:day>/", views.day_edit, name="day"),
+    path("confirm-all/", views.confirm_all, name="confirm_all"),
     path("extra/new/", views.extra_edit, name="extra_new"),
     path("extra/<int:pk>/", views.extra_edit, name="extra"),
     path("vacation/", views.vacation, name="vacation"),
