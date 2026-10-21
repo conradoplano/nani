@@ -167,7 +167,9 @@ body { overflow-x: hidden; }
 .summary > :last-child { white-space: nowrap; }
 .summary .total { font-size: 1.15rem; }
 
-.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr)); gap: .5rem; margin-bottom: 1rem; }
+/* Four boxes in a row, or 2 × 2 on a phone (never 3 + 1). */
+.stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: .5rem; margin-bottom: 1rem; }
+@media (max-width: 520px) { .stats { grid-template-columns: repeat(2, 1fr); } }
 .stats .card { margin: 0; text-align: center; }
 
 .stack { display: flex; flex-direction: column; gap: .75rem; }

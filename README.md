@@ -3,6 +3,28 @@
 Small Django app to manage our nanny's hours. Runs on the NAS as a Docker container, data in SQLite.
 Works on the phone and can be added to the home screen. Vibecoded with Claude Opus 5.5.
 
+## Screenshots
+
+Phone screens with made-up demo data (all names and amounts are fictional).
+
+<table>
+  <tr>
+    <td align="center"><img src="docs/screenshots/home.jpg" width="250" alt="Home for the nanny: today with one-tap confirm, trips today, days to confirm"><br><sub><b>Home</b> – today, days to confirm</sub></td>
+    <td align="center"><img src="docs/screenshots/week.jpg" width="250" alt="Week view with worked, to confirm, scheduled and no-care-needed days and the running YTD"><br><sub><b>Weeks</b> – the plan and YTD, swipe between weeks</sub></td>
+    <td align="center"><img src="docs/screenshots/day.jpg" width="250" alt="A day: confirm as planned or enter different times"><br><sub><b>A day</b> – confirm or enter times</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/vacation.jpg" width="250" alt="Vacation days, booked, requested and left, with requests and approvals"><br><sub><b>Vacation</b> – request and approve</sub></td>
+    <td align="center"><img src="docs/screenshots/trips.jpg" width="250" alt="Mileage log for the month"><br><sub><b>Trips</b> – the mileage log</sub></td>
+    <td align="center"><img src="docs/screenshots/plan.jpg" width="250" alt="Plan several days, e.g. no care needed during a holiday"><br><sub><b>Plan</b> – change several days (parents)</sub></td>
+  </tr>
+  <tr>
+    <td align="center"><img src="docs/screenshots/month.jpg" width="250" alt="Month: hours, days not confirmed yet, time account and pay"><br><sub><b>Month</b> – hours and pay (parents)</sub></td>
+    <td align="center"><img src="docs/screenshots/admin.jpg" width="250" alt="Admin: people and contract terms"><br><sub><b>Admin</b> – people and contract (parents)</sub></td>
+    <td></td>
+  </tr>
+</table>
+
 ## What it does
 
 - **Home** – greeting, today's plan and entries, the rest of the week (from Friday: next week) and the
