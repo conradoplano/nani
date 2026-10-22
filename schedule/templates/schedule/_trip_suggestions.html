@@ -1,0 +1,11 @@
+{% comment %}
+  Earlier trips, shown below the purpose field while typing (filtered by app.js, like chef's recipe search).
+  Part of the page rather than a browser datalist, so it always appears right below the field.
+{% endcomment %}
+<div class="trip-suggest" hidden>
+  {% for s in suggestions %}
+    <button type="button" class="suggestion" data-purpose="{{ s.purpose }}" data-km="{{ s.km }}" data-search="{{ s.purpose|lower }}">
+      <span>{{ s.purpose }}</span><span class="muted">{{ s.km }} km</span>
+    </button>
+  {% endfor %}
+</div>

@@ -1,7 +1,7 @@
 {% comment %}
   Trips of one day with a quick form to add one.
   Needs: day (date), trips, title, back ("home" or "day": where to return after adding), can_add.
-{% endcomment %}
+{% endcomment %}{% load nani %}
 <div class="day-trips">
   <h3>{{ title }}</h3>
   {% for t in trips %}
@@ -14,9 +14,11 @@
       {% csrf_token %}
       <input type="hidden" name="next" value="{{ back }}">
       <input type="hidden" name="date" value="{{ day.isoformat }}">
-      <input type="text" name="purpose" placeholder="Purpose, e.g. swimming" maxlength="200" required aria-label="Purpose">
+      <input type="text" name="purpose" placeholder="Purpose, e.g. swimming" maxlength="200" required aria-label="Purpose"
+             data-trip-purpose autocomplete="off">
       <input type="number" name="km" placeholder="km" step="0.1" min="0" inputmode="decimal" required aria-label="Kilometres">
       <button type="submit">Add</button>
+      {% trip_suggestions %}
     </form>
   {% endif %}
 </div>

@@ -81,6 +81,8 @@ class TripForm(forms.ModelForm):
         fields = ["date", "purpose", "km"]
         widgets = {
             "date": DateInput(),
+            # Suggestions from earlier trips below the field (see the trip_suggestions template tag).
+            "purpose": forms.TextInput(attrs={"data-trip-purpose": "", "autocomplete": "off"}),
             "km": forms.NumberInput(attrs={"inputmode": "decimal", "step": "0.1", "min": "0"}),
         }
 

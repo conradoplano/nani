@@ -38,6 +38,53 @@
     }
   }, true);
 
+  // --- Trips: earlier trips below the purpose field while typing (filtered like chef's recipe
+  //     search). Picking one fills in purpose and km; a km typed by hand is never overwritten. ---
+  document.querySelectorAll('input[data-trip-purpose]').forEach((input) => {
+    const form = input.form;
+    const list = form?.querySelector('.trip-suggest');
+    const km = form?.querySelector('input[name=km]');
+    if (!list || !km) return;
+    const items = [...list.querySelectorAll('.suggestion')];
+    const MAX_SHOWN = 6;
+
+    const fillKm = (value) => {
+      if (!km.value || km.value === km.dataset.suggested) {
+        km.value = value;
+        km.dataset.suggested = value;
+      }
+    };
+    const filter = () => {
+      const text = input.value.trim().toLowerCase();
+      const words = text.split(/\s+/).filter(Boolean);
+      let shown = 0;
+      items.forEach((item) => {
+        const match = words.length > 0 && item.dataset.search !== text && shown < MAX_SHOWN
+          && words.every((w) => item.dataset.search.includes(w));
+        item.hidden = !match;
+        if (match) shown++;
+      });
+      list.hidden = shown === 0;
+      // Typed an earlier purpose in full: take its km too.
+      const exact = items.find((item) => item.dataset.search === text);
+      if (exact) fillKm(exact.dataset.km);
+    };
+
+    input.addEventListener('input', filter);
+    input.addEventListener('focus', filter);
+    input.addEventListener('keydown', (e) => { if (e.key === 'Escape') list.hidden = true; });
+    // Hide when focus leaves the field and its suggestions (a tap on a suggestion still counts).
+    form.addEventListener('focusout', () => setTimeout(() => {
+      if (!form.contains(document.activeElement) || document.activeElement === km) list.hidden = true;
+    }, 150));
+    items.forEach((item) => item.addEventListener('click', () => {
+      input.value = item.dataset.purpose;
+      fillKm(item.dataset.km);
+      list.hidden = true;
+      km.focus();
+    }));
+  });
+
   // --- Installable app: pass-through service worker. ---
   const swUrl = document.body.dataset.swUrl;
   if (swUrl && 'serviceWorker' in navigator) navigator.serviceWorker.register(swUrl);

@@ -4,6 +4,25 @@ from django import template
 
 register = template.Library()
 
+TRIP_SUGGESTIONS = 30
+
+
+@register.inclusion_tag("schedule/_trip_suggestions.html")
+def trip_suggestions():
+    """Earlier trip purposes for the suggestions below the purpose field: the most frequent first,
+    each with the km of its latest trip (app.js shows them while typing and fills in the km)."""
+    from schedule.models import Trip
+
+    seen = {}
+    for trip in Trip.objects.order_by("-date", "-id").only("purpose", "km")[:1000]:
+        key = trip.purpose.strip().lower()
+        if key in seen:
+            seen[key]["count"] += 1
+        else:
+            seen[key] = {"purpose": trip.purpose.strip(), "km": trip.km, "count": 1}
+    ranked = sorted(seen.values(), key=lambda s: -s["count"])  # stable: equally frequent stay most recent first
+    return {"suggestions": ranked[:TRIP_SUGGESTIONS]}
+
 
 @register.filter
 def hm(minutes):

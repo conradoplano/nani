@@ -1,3 +1,4 @@
+import re
 from datetime import date, time
 from decimal import Decimal
 from unittest import mock
@@ -432,8 +433,9 @@ class ViewTests(TestCase):
             with self.subTest(user=user.role):
                 self.client.force_login(user)
                 response = self.client.get(url)
-                self.assertContains(response, "Football")
-                self.assertNotContains(response, "Other day")
+                self.assertContains(response, 'class="line plain"><span>Football</span>')
+                # Another day's trip isn't listed (its purpose may be among the suggestions).
+                self.assertNotContains(response, 'class="line plain"><span>Other day</span>')
                 self.assertContains(response, "Purpose, e.g. swimming")
                 response = self.client.post(
                     reverse("schedule:trips"), {"next": "day", "date": "2026-10-05", "purpose": purpose, "km": "5"}
@@ -443,6 +445,19 @@ class ViewTests(TestCase):
         # The Trips page itself still returns to the month.
         response = self.client.post(reverse("schedule:trips"), {"date": "2026-10-05", "purpose": "X", "km": "1"})
         self.assertRedirects(response, reverse("schedule:trips_month", args=[2026, 10]))
+
+    def test_trip_purposes_are_suggested_with_their_latest_km(self):
+        Trip.objects.create(date=date(2026, 10, 1), purpose="Swimming lessons", km=Decimal("8.0"))
+        Trip.objects.create(date=date(2026, 10, 5), purpose="swimming lessons ", km=Decimal("8.4"))
+        Trip.objects.create(date=date(2026, 10, 6), purpose="Pediatrician", km=Decimal("12"))
+        self.client.force_login(self.nanny)
+        for url in [reverse("schedule:day", args=["2026-10-07"]), reverse("schedule:trips"), reverse("schedule:home")]:
+            with self.subTest(url=url):
+                html = self.client.get(url).content.decode()
+                self.assertIn("data-trip-purpose", html)
+                options = re.findall(r'class="suggestion" data-purpose="([^"]+)" data-km="([^"]+)"', html)
+                # The most frequent first (case and spaces ignored), each with the km of its latest trip.
+                self.assertEqual(options, [("swimming lessons", "8.4"), ("Pediatrician", "12.0")])
 
     def test_today_card_confirm_returns_home(self):
         self.client.force_login(self.nanny)

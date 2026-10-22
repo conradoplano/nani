@@ -37,7 +37,7 @@
       <div class="field">{{ form.date.label_tag }}{{ form.date }}{{ form.date.errors }}</div>
       <div class="field">{{ form.km.label_tag }}{{ form.km }}{{ form.km.errors }}</div>
     </div>
-    <div class="field">{{ form.purpose.label_tag }}{{ form.purpose }}{{ form.purpose.errors }}</div>
+    <div class="field">{{ form.purpose.label_tag }}{{ form.purpose }}{% trip_suggestions %}{{ form.purpose.errors }}</div>
     <button class="wide" type="submit">Save trip</button>
   </form>
 {% endblock %}
