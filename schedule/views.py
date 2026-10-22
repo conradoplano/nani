@@ -77,10 +77,13 @@ def _greeting():
     return "Good evening"
 
 
-def _redirect_back(request, default, *args, **kwargs):
-    """Return to the home screen when a form there asked for it, else to `default`."""
-    if request.POST.get("next") == "home":
+def _redirect_back(request, default, *args, trip_day=None, **kwargs):
+    """Return to where a form asked for (next=home, or next=day for that day's page), else to `default`."""
+    target = request.POST.get("next")
+    if target == "home":
         return redirect("schedule:home")
+    if target == "day" and trip_day:
+        return redirect("schedule:day", day=trip_day.isoformat())
     return redirect(default, *args, **kwargs)
 
 
@@ -204,7 +207,10 @@ def day_edit(request, day):
     return render(
         request,
         "schedule/day.html",
-        {"info": info, "form": form, "day": day, "default_plan": default_plan, "can_confirm": can_confirm},
+        {
+            "info": info, "form": form, "day": day, "default_plan": default_plan, "can_confirm": can_confirm,
+            "trips": Trip.objects.filter(date=day),
+        },
     )
 
 
@@ -339,7 +345,9 @@ def trips(request, year=None, month=None):
         trip.updated_by = request.user
         trip.save()
         messages.success(request, "Trip saved.")
-        return _redirect_back(request, "schedule:trips_month", year=trip.date.year, month=trip.date.month)
+        return _redirect_back(
+            request, "schedule:trips_month", trip_day=trip.date, year=trip.date.year, month=trip.date.month
+        )
 
     summary_trips = Trip.objects.filter(date__year=year, date__month=month)
     contract = Contract.objects.filter(start_date__lte=first).first() or Contract.objects.last()

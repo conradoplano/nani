@@ -56,6 +56,10 @@
   </form>
 
   <div class="card">
+    {% include "schedule/_day_trips.html" with trips=trips title="Trips" back="day" can_add=True %}
+  </div>
+
+  <div class="card">
     <h3>Evening &amp; overnight</h3>
     {% for e in info.extras %}
       <a class="extra" href="{% url 'schedule:extra' e.extra.pk %}">

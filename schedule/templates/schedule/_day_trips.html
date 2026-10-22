@@ -1,0 +1,22 @@
+{% comment %}
+  Trips of one day with a quick form to add one.
+  Needs: day (date), trips, title, back ("home" or "day": where to return after adding), can_add.
+{% endcomment %}
+<div class="day-trips">
+  <h3>{{ title }}</h3>
+  {% for t in trips %}
+    <a href="{% url 'schedule:trip' t.pk %}" class="line plain"><span>{{ t.purpose }}</span><span>{{ t.km }} km</span></a>
+  {% empty %}
+    <p class="muted small">None yet.</p>
+  {% endfor %}
+  {% if can_add %}
+    <form method="post" action="{% url 'schedule:trips' %}" class="trip-quick">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ back }}">
+      <input type="hidden" name="date" value="{{ day.isoformat }}">
+      <input type="text" name="purpose" placeholder="Purpose, e.g. swimming" maxlength="200" required aria-label="Purpose">
+      <input type="number" name="km" placeholder="km" step="0.1" min="0" inputmode="decimal" required aria-label="Kilometres">
+      <button type="submit">Add</button>
+    </form>
+  {% endif %}
+</div>

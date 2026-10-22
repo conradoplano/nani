@@ -34,21 +34,6 @@
   {% endif %}
 
   <div class="today-trips">
-    <h3>Trips today</h3>
-    {% for t in today_trips %}
-      <a href="{% url 'schedule:trip' t.pk %}" class="line plain"><span>{{ t.purpose }}</span><span>{{ t.km }} km</span></a>
-    {% empty %}
-      <p class="muted small">None yet.</p>
-    {% endfor %}
-    {% if can_act %}
-    <form method="post" action="{% url 'schedule:trips' %}" class="trip-quick">
-      {% csrf_token %}
-      <input type="hidden" name="next" value="home">
-      <input type="hidden" name="date" value="{{ d.date.isoformat }}">
-      <input type="text" name="purpose" placeholder="Purpose, e.g. swimming" maxlength="200" required aria-label="Purpose">
-      <input type="number" name="km" placeholder="km" step="0.1" min="0" inputmode="decimal" required aria-label="Kilometres">
-      <button type="submit">Add</button>
-    </form>
-    {% endif %}
+    {% include "schedule/_day_trips.html" with day=d.date trips=today_trips title="Trips today" back="home" can_add=can_act %}
   </div>
 </section>

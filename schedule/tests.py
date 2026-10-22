@@ -424,6 +424,26 @@ class ViewTests(TestCase):
         self.assertRedirects(response, reverse("schedule:home"))
         self.assertContains(self.client.get(reverse("schedule:home")), "Swimming")
 
+    def test_trips_on_the_day_page_for_nanny_and_parents(self):
+        Trip.objects.create(date=date(2026, 10, 5), purpose="Football", km=Decimal("6.2"))
+        Trip.objects.create(date=date(2026, 10, 6), purpose="Other day", km=Decimal("1"))
+        url = reverse("schedule:day", args=["2026-10-05"])
+        for user, purpose in [(self.nanny, "Swimming"), (self.parent, "Pediatrician")]:
+            with self.subTest(user=user.role):
+                self.client.force_login(user)
+                response = self.client.get(url)
+                self.assertContains(response, "Football")
+                self.assertNotContains(response, "Other day")
+                self.assertContains(response, "Purpose, e.g. swimming")
+                response = self.client.post(
+                    reverse("schedule:trips"), {"next": "day", "date": "2026-10-05", "purpose": purpose, "km": "5"}
+                )
+                self.assertRedirects(response, url)
+                self.assertTrue(Trip.objects.filter(date=date(2026, 10, 5), purpose=purpose, updated_by=user).exists())
+        # The Trips page itself still returns to the month.
+        response = self.client.post(reverse("schedule:trips"), {"date": "2026-10-05", "purpose": "X", "km": "1"})
+        self.assertRedirects(response, reverse("schedule:trips_month", args=[2026, 10]))
+
     def test_today_card_confirm_returns_home(self):
         self.client.force_login(self.nanny)
         response = self.client.post(reverse("schedule:day", args=[TODAY.isoformat()]), {"next": "home", "confirm": "1"})
