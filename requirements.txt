@@ -1,8 +1,6 @@
 # Exact versions the image is built with; see requirements.in for the direct dependencies.
 asgiref==3.12.1
-Django==5.2.17
+django==6.1.2
 gunicorn==26.2.0
 sqlparse==0.6.0
 whitenoise==6.12.0
-# Time zone data for local development on Windows (Linux has it built in).
-tzdata==2026.4; sys_platform == "win32"
